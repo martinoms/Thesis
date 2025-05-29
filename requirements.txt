@@ -6,4 +6,4 @@ altair
 numpy
 scipy
 matplotlib
-json
+
