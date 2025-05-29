@@ -10,6 +10,7 @@ import numpy as np
 import pandas as pd
 import altair as alt
 from Watertank import ThermalStorageTank
+import json
 
 # Set page configuration
 st.set_page_config(page_title="Thermal Tank Flow Sim", layout="wide")
@@ -190,7 +191,7 @@ compute_engine = ComputeEngine(base_blocks)
 # Function to dynamically add inputs/outputs to tank based on user selection
 def update_tank_connections():
     if barfi_result.editor_schema:
-        schema_dict = barfi_result.editor_schema.to_dict()
+        schema_dict = json.loads(barfi_result.editor_schema.model_dump_json())
 
         # Find the tank block in the schema
         for block_id, block_data in schema_dict['blocks'].items():
@@ -215,8 +216,6 @@ def update_tank_connections():
 
                 break
 
-        # Now update the schema in the barfi result object
-        barfi_result.editor_schema.load(schema_dict)
 
 
 # Update connections when options change
