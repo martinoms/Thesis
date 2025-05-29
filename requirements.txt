@@ -1,5 +1,5 @@
 streamlit
-barfi>=0.2.5
+barfi
 numpy
 pandas
 altair
