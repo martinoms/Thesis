@@ -21,15 +21,16 @@ st.markdown("Connect flow inputs to tank nodes and visualize the results")
 # 1. Flow Block (can be connected to tank inputs)
 flow_block = Block(name="Flow Input")
 flow_block.add_output(name="flow_out")  # This will connect to tank inputs
-flow_block.add_option(name="flow_temp", type="number", value=80.0, label="Temperature (°C)")
-flow_block.add_option(name="flow_rate", type="number", value=5.0, label="Flow Rate (kg/s)")
-flow_block.add_option(name="flow_name", type="text", value="Flow", label="Flow Name")
+flow_block.add_option(name="flow_temp", type="input", value=80.0, label="Temperature (°C)")
+flow_block.add_option(name="flow_rate", type="input", value=5.0, label="Flow Rate (kg/s)")
+# Using 'input' type for text input since 'text' type isn't available
+flow_block.add_option(name="flow_name", type="input", value="Flow", label="Flow Name")
 
 def flow_block_func(self):
     flow_data = {
-        'temperature': self.get_option("flow_temp"),
-        'flow_rate': self.get_option("flow_rate"),
-        'name': self.get_option("flow_name")
+        'temperature': float(self.get_option("flow_temp")),
+        'flow_rate': float(self.get_option("flow_rate")),
+        'name': str(self.get_option("flow_name"))
     }
     self.set_interface(name="flow_out", value=flow_data)
 
@@ -37,11 +38,11 @@ flow_block.add_compute(flow_block_func)
 
 # 2. Tank Block (with configurable inputs/outputs)
 tank_block = Block(name="Tank")
-tank_block.add_option(name="tank_height", type="number", value=4.0, label="Height (m)")
-tank_block.add_option(name="tank_diameter", type="number", value=2.0, label="Diameter (m)")
-tank_block.add_option(name="num_nodes", type="number", value=20, label="Number of Nodes")
-tank_block.add_option(name="num_inputs", type="number", value=2, label="Number of Inputs")
-tank_block.add_option(name="num_outputs", type="number", value=1, label="Number of Outputs")
+tank_block.add_option(name="tank_height", type="input", value=4.0, label="Height (m)")
+tank_block.add_option(name="tank_diameter", type="input", value=2.0, label="Diameter (m)")
+tank_block.add_option(name="num_nodes", type="input", value=20, label="Number of Nodes")
+tank_block.add_option(name="num_inputs", type="input", value=2, label="Number of Inputs")
+tank_block.add_option(name="num_outputs", type="input", value=1, label="Number of Outputs")
 
 # Dynamic inputs/outputs will be added based on the options
 tank_block.add_output(name="tank_out")  # Main tank output
@@ -49,9 +50,9 @@ tank_block.add_output(name="tank_out")  # Main tank output
 def tank_block_func(self):
     # Get tank parameters
     params = {
-        'tank_height': self.get_option("tank_height"),
-        'tank_diameter': self.get_option("tank_diameter"),
-        'num_nodes': int(self.get_option("num_nodes")),
+        'tank_height': float(self.get_option("tank_height")),
+        'tank_diameter': float(self.get_option("tank_diameter")),
+        'num_nodes': int(float(self.get_option("num_nodes"))),
         'initial_temp': 20.0,  # Default initial temperature
         'C_fl': 4186,  # Water heat capacity
         'k_fl': 0.6    # Thermal conductivity
@@ -65,7 +66,7 @@ def tank_block_func(self):
     outlets = []
     
     # Get dynamic inputs (added by user)
-    num_inputs = int(self.get_option("num_inputs"))
+    num_inputs = int(float(self.get_option("num_inputs")))
     for i in range(num_inputs):
         input_name = f"flow_in_{i}"
         if self.get_interface(input_name):
@@ -75,7 +76,7 @@ def tank_block_func(self):
             inlets.append((height, flow_data['flow_rate'], flow_data['temperature'], flow_data['name']))
     
     # Get dynamic outputs (added by user)
-    num_outputs = int(self.get_option("num_outputs"))
+    num_outputs = int(float(self.get_option("num_outputs")))
     for i in range(num_outputs):
         output_name = f"flow_out_{i}"
         if self.get_interface(output_name):
@@ -180,13 +181,13 @@ def update_tank_connections():
                 
                 # Add dynamic inputs
                 num_inputs = block_data['options']['num_inputs']['value']
-                for i in range(int(num_inputs)):
+                for i in range(int(float(num_inputs))):
                     input_name = f"flow_in_{i}"
                     block_data['interfaces']['input'][input_name] = {'name': input_name}
                 
                 # Add dynamic outputs
                 num_outputs = block_data['options']['num_outputs']['value']
-                for i in range(int(num_outputs)):
+                for i in range(int(float(num_outputs))):
                     output_name = f"flow_out_{i}"
                     block_data['interfaces']['output'][output_name] = {'name': output_name}
                 
