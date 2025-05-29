@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Simplified Thermal Storage Tank Simulation
+Enhanced Thermal Storage Tank Simulation with Visible Inputs/Options
 """
 
 import streamlit as st
@@ -23,7 +23,6 @@ flow_block = Block(name="Flow Input")
 flow_block.add_output(name="flow_out")  # This will connect to tank inputs
 flow_block.add_option(name="flow_temp", type="input", value="80.0", label="Temperature (°C)")
 flow_block.add_option(name="flow_rate", type="input", value="5.0", label="Flow Rate (kg/s)")
-
 flow_block.add_option(name="flow_name", type="input", value="Flow", label="Flow Name")
 
 def flow_block_func(self):
@@ -113,7 +112,8 @@ def tank_block_func(self):
         "node_heights": node_heights,
         "temperatures": final_temps,
         "outlets": outlet_temps,
-        "inlets": inlets
+        "inlets": inlets,
+        "params": params  # Include tank parameters in results
     }
     
     self.set_interface(name="tank_out", value=results)
@@ -127,7 +127,15 @@ results_block.add_input(name="results_in")
 def results_block_func(self):
     results = self.get_interface("results_in")
     if results:
+        # Display tank parameters in an expandable section
+        with st.expander("Tank Configuration", expanded=True):
+            cols = st.columns(3)
+            cols[0].metric("Height", f"{results['params']['tank_height']} m")
+            cols[1].metric("Diameter", f"{results['params']['tank_diameter']} m")
+            cols[2].metric("Nodes", results['params']['num_nodes'])
+        
         # Temperature profile plot
+        st.subheader("Temperature Profile")
         df = pd.DataFrame({
             'Height (m)': results["node_heights"],
             'Temperature (°C)': results["temperatures"]
@@ -139,24 +147,36 @@ def results_block_func(self):
             tooltip=['Height (m)', 'Temperature (°C)']
         ).properties(
             width=600,
-            height=400,
-            title="Temperature Profile"
+            height=400
         )
         st.altair_chart(chart, use_container_width=True)
         
-        # Inlets/outlets information
+        # Flow connections section
         st.subheader("Flow Connections")
         
-        cols = st.columns(2)
-        with cols[0]:
-            st.write("**Inlets**")
-            for inlet in results["inlets"]:
-                st.write(f"- {inlet[3]}: {inlet[1]} kg/s at {inlet[2]}°C (height: {inlet[0]:.1f}m)")
+        # Inlets information
+        with st.expander("Input Flows", expanded=True):
+            if results["inlets"]:
+                for i, inlet in enumerate(results["inlets"]):
+                    cols = st.columns(3)
+                    cols[0].metric(f"Input {i+1} Name", inlet[3])
+                    cols[1].metric("Flow Rate", f"{inlet[1]} kg/s")
+                    cols[2].metric("Temperature", f"{inlet[2]}°C")
+                    st.caption(f"Height: {inlet[0]:.2f} m")
+            else:
+                st.warning("No input flows connected")
         
-        with cols[1]:
-            st.write("**Outlets**")
-            for outlet in results["outlets"]:
-                st.write(f"- {outlet['name']}: {outlet['flow_rate']} kg/s at {outlet['temperature']:.1f}°C (height: {outlet['height']:.1f}m)")
+        # Outlets information
+        with st.expander("Output Flows", expanded=True):
+            if results["outlets"]:
+                for i, outlet in enumerate(results["outlets"]):
+                    cols = st.columns(3)
+                    cols[0].metric(f"Output {i+1} Name", outlet['name'])
+                    cols[1].metric("Flow Rate", f"{outlet['flow_rate']} kg/s")
+                    cols[2].metric("Temperature", f"{outlet['temperature']:.1f}°C")
+                    st.caption(f"Height: {outlet['height']:.2f} m")
+            else:
+                st.warning("No output flows connected")
 
 results_block.add_compute(results_block_func)
 
@@ -197,3 +217,24 @@ def update_tank_connections():
 if barfi_result.editor_schema:
     update_tank_connections()
     compute_engine.execute(barfi_result.editor_schema)
+
+# Display current connections in Streamlit
+st.sidebar.header("Current Connections")
+if barfi_result.editor_schema:
+    for connection in barfi_result.editor_schema['connections']:
+        source_block = barfi_result.editor_schema['blocks'][connection['source_id']]['block_name']
+        source_interface = connection['source_interface']
+        target_block = barfi_result.editor_schema['blocks'][connection['target_id']]['block_name']
+        target_interface = connection['target_interface']
+        st.sidebar.write(f"🔗 {source_block} ({source_interface}) → {target_block} ({target_interface})")
+else:
+    st.sidebar.write("No connections yet")
+
+# Display tank inputs/outputs configuration
+if barfi_result.editor_schema:
+    for block_id, block_data in barfi_result.editor_schema['blocks'].items():
+        if block_data['block_name'] == 'Tank':
+            st.sidebar.header("Tank Connections")
+            st.sidebar.write(f"Inputs: {len(block_data['interfaces']['input']}")
+            st.sidebar.write(f"Outputs: {len(block_data['interfaces']['output'] - 1}")  # Subtract main output
+            break
