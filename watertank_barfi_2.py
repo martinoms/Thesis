@@ -6,8 +6,8 @@ Created on Tue May 27 22:17:16 2025
 """
 
 import streamlit as st
-from barfi import Block, ComputeEngine, SchemaManager
-from barfi.streamlit import st_flow
+from barfi.flow import Block, ComputeEngine, SchemaManager
+from barfi.flow.streamlit import st_flow
 import numpy as np
 import pandas as pd
 import altair as alt
