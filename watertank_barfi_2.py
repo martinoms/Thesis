@@ -235,6 +235,8 @@ if barfi_result.editor_schema:
     for block_id, block_data in barfi_result.editor_schema['blocks'].items():
         if block_data['block_name'] == 'Tank':
             st.sidebar.header("Tank Connections")
-            st.sidebar.write(f"Inputs: {len(block_data['interfaces']['input']}")
-            st.sidebar.write(f"Outputs: {len(block_data['interfaces']['output'] - 1}")  # Subtract main output
+            st.sidebar.write(f"Inputs: {len(block_data['interfaces']['input'])}")
+            # Subtract 1 from outputs to ignore 'tank_out'
+            output_count = len(block_data['interfaces']['output']) - 1 if 'tank_out' in block_data['interfaces']['output'] else len(block_data['interfaces']['output'])
+            st.sidebar.write(f"Outputs: {output_count}")
             break
