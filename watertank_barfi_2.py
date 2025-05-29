@@ -190,28 +190,34 @@ compute_engine = ComputeEngine(base_blocks)
 # Function to dynamically add inputs/outputs to tank based on user selection
 def update_tank_connections():
     if barfi_result.editor_schema:
+        schema_dict = barfi_result.editor_schema.to_dict()
+
         # Find the tank block in the schema
-        for block_id, block_data in barfi_result.editor_schema['blocks'].items():
+        for block_id, block_data in schema_dict['blocks'].items():
             if block_data['block_name'] == 'Tank':
                 # Clear existing inputs/outputs (except main output)
                 block_data['interfaces'] = {
                     'input': {},
                     'output': {'tank_out': {'name': 'tank_out'}}
                 }
-                
+
                 # Add dynamic inputs
                 num_inputs = block_data['options']['num_inputs']['value']
                 for i in range(int(float(num_inputs))):
                     input_name = f"flow_in_{i}"
                     block_data['interfaces']['input'][input_name] = {'name': input_name}
-                
+
                 # Add dynamic outputs
                 num_outputs = block_data['options']['num_outputs']['value']
                 for i in range(int(float(num_outputs))):
                     output_name = f"flow_out_{i}"
                     block_data['interfaces']['output'][output_name] = {'name': output_name}
-                
+
                 break
+
+        # Now update the schema in the barfi result object
+        barfi_result.editor_schema.load(schema_dict)
+
 
 # Update connections when options change
 if barfi_result.editor_schema:
