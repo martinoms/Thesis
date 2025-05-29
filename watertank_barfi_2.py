@@ -191,7 +191,8 @@ compute_engine = ComputeEngine(base_blocks)
 # Function to dynamically add inputs/outputs to tank based on user selection
 def update_tank_connections():
     if barfi_result.editor_schema:
-        schema_dict = json.loads(barfi_result.editor_schema.model_dump_json())
+        schema_dict = barfi_result.editor_schema.dict()  # For Pydantic v1
+
 
         # Find the tank block in the schema
         for block_id, block_data in schema_dict['blocks'].items():
