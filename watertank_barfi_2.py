@@ -38,11 +38,11 @@ flow_block.add_compute(flow_block_func)
 
 # 2. Tank Block (with configurable inputs/outputs)
 tank_block = Block(name="Tank")
-tank_block.add_option(name="tank_height", type="input", value=4.0, label="Height (m)")
-tank_block.add_option(name="tank_diameter", type="input", value=2.0, label="Diameter (m)")
-tank_block.add_option(name="num_nodes", type="input", value=20, label="Number of Nodes")
-tank_block.add_option(name="num_inputs", type="input", value=2, label="Number of Inputs")
-tank_block.add_option(name="num_outputs", type="input", value=1, label="Number of Outputs")
+tank_block.add_option(name="tank_height", type="input", value="4.0", label="Height (m)")
+tank_block.add_option(name="tank_diameter", type="input", value="2.0", label="Diameter (m)")
+tank_block.add_option(name="num_nodes", type="input", value="20", label="Number of Nodes")
+tank_block.add_option(name="num_inputs", type="input", value="2", label="Number of Inputs")
+tank_block.add_option(name="num_outputs", type="input", value="1", label="Number of Outputs")
 
 # Dynamic inputs/outputs will be added based on the options
 tank_block.add_output(name="tank_out")  # Main tank output
