@@ -191,31 +191,43 @@ compute_engine = ComputeEngine(base_blocks)
 # Function to dynamically add inputs/outputs to tank based on user selection
 def update_tank_connections():
     if barfi_result.editor_schema:
-        schema_dict = barfi_result.editor_schema.dict()  # For Pydantic v1
+        # Convert FlowSchema to dictionary
+        schema_dict = barfi_result.editor_schema.to_dict()
 
-
-        # Find the tank block in the schema
+        # Loop through all blocks
         for block_id, block_data in schema_dict['blocks'].items():
             if block_data['block_name'] == 'Tank':
-                # Clear existing inputs/outputs (except main output)
-                block_data['interfaces'] = {
-                    'input': {},
-                    'output': {'tank_out': {'name': 'tank_out'}}
+                # Preserve only 'Main Output' in interfaces
+                new_interfaces = {
+                    name: iface
+                    for name, iface in block_data['interfaces'].items()
+                    if name == 'Main Output'
                 }
 
-                # Add dynamic inputs
-                num_inputs = block_data['options']['num_inputs']['value']
-                for i in range(int(float(num_inputs))):
-                    input_name = f"flow_in_{i}"
-                    block_data['interfaces']['input'][input_name] = {'name': input_name}
+                # Example: add dynamic inputs/outputs
+                # You can replace this with values selected via Streamlit widgets
+                num_inputs = st.session_state.get('num_inputs', 2)
+                num_outputs = st.session_state.get('num_outputs', 2)
 
-                # Add dynamic outputs
-                num_outputs = block_data['options']['num_outputs']['value']
-                for i in range(int(float(num_outputs))):
-                    output_name = f"flow_out_{i}"
-                    block_data['interfaces']['output'][output_name] = {'name': output_name}
+                for i in range(num_inputs):
+                    new_interfaces[f'Input {i+1}'] = {
+                        'type': 'input',
+                        'data_type': 'float'
+                    }
 
-                break
+                for j in range(num_outputs):
+                    new_interfaces[f'Output {j+1}'] = {
+                        'type': 'output',
+                        'data_type': 'float'
+                    }
+
+                # Apply the updated interfaces to the Tank block
+                block_data['interfaces'] = new_interfaces
+
+        # Reconstruct the FlowSchema from the modified dictionary
+        # This step may vary depending on how barfi consumes schema updates.
+        barfi_result.editor_schema = barfi.FlowSchema.from_dict(schema_dict)
+
 
 
 
