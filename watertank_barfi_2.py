@@ -21,9 +21,9 @@ st.markdown("Connect flow inputs to tank nodes and visualize the results")
 # 1. Flow Block (can be connected to tank inputs)
 flow_block = Block(name="Flow Input")
 flow_block.add_output(name="flow_out")  # This will connect to tank inputs
-flow_block.add_option(name="flow_temp", type="input", value=80.0, label="Temperature (°C)")
-flow_block.add_option(name="flow_rate", type="input", value=5.0, label="Flow Rate (kg/s)")
-# Using 'input' type for text input since 'text' type isn't available
+flow_block.add_option(name="flow_temp", type="input", value="80.0", label="Temperature (°C)")
+flow_block.add_option(name="flow_rate", type="input", value="5.0", label="Flow Rate (kg/s)")
+
 flow_block.add_option(name="flow_name", type="input", value="Flow", label="Flow Name")
 
 def flow_block_func(self):
