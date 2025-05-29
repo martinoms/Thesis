@@ -3,3 +3,6 @@ barfi
 numpy
 pandas
 altair
+numpy
+scipy
+matplotlib
