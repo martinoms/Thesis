@@ -18,8 +18,7 @@ import pandas as pd
 import altair as alt
 from Watertank import ThermalStorageTank
 
-# Set page configuration
-st.set_page_config(page_title="Thermal Storage Tank Simulation", layout="wide")
+
 
 # Title and description
 st.title("Thermal Storage Tank Simulation")
