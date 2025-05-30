@@ -165,25 +165,33 @@ if barfi_result and barfi_result.editor_schema:
     compute_engine = ComputeEngine(blocks)
     compute_engine.execute(barfi_result.editor_schema)
 
-    try:
-        # Try to get the tank block output
-        tank_output_block = barfi_result.editor_schema.block(node_label="Tank")
-        tank_output_data = tank_output_block.get_interface("tank_out")
+    # Get list of node labels in current Barfi editor schema
+    node_labels = [node.label for node in barfi_result.editor_schema.nodes]
 
-        # Find the Results block
-        result_block = barfi_result.editor_schema.block(node_label="Results")
+    # Check if both "Tank" and "Results" blocks are placed
+    if "Tank" in node_labels and "Results" in node_labels:
+        try:
+            # Get the Tank block
+            tank_block_node = barfi_result.editor_schema.block(node_label="Tank")
+            tank_output = tank_block_node.get_interface("tank_out")
 
-        # If nothing is wired to the "results_in" input, inject data from the tank
-        if not result_block.get_interface("results_in") and tank_output_data:
-            result_block.set_interface("results_in", tank_output_data)
+            # Get the Results block
+            result_block_node = barfi_result.editor_schema.block(node_label="Results")
 
-        # Now render the results safely
-        result_data = result_block.get_interface("results_in")
-        if result_data:
-            st.write("Results from Results block:", result_data)
+            # Inject tank output if it's not already wired
+            if not result_block_node.get_interface("results_in") and tank_output:
+                result_block_node.set_interface("results_in", tank_output)
 
-    except Exception as e:
-        st.error(f"⚠️ Error fetching block data: {e}")
+            # Show final result
+            result_data = result_block_node.get_interface("results_in")
+            if result_data:
+                st.write("Results from Results block:", result_data)
+
+        except Exception as e:
+            st.error(f"⚠️ Error during result processing: {e}")
+    else:
+        st.warning("⚠️ Please add and connect both the **Tank** and **Results** blocks in the editor.")
+
 
 
 
