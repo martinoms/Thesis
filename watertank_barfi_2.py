@@ -47,7 +47,6 @@ def create_tank_block(num_inputs, num_outputs):
     tank_block.add_option("tank_diameter", type="input", value="2.0", label="Tank Diameter (m)")
     tank_block.add_option("num_nodes", type="input", value="50", label="Number of Nodes")
     tank_block.add_option("initial_temp", type="input", value="30", label="Initial Temperature (°C)")
-    #tank_block.add_option("display", type="output", value="", label="Outlet 1 Display")
 
     for i in range(num_inputs):
         tank_block.add_option(f"input_height_{i}", type="input", value=str((i + 1) * 1.0), label=f"Input {i+1} Height (m)")
@@ -66,8 +65,7 @@ def create_tank_block(num_inputs, num_outputs):
         D = float(self.get_option("tank_diameter"))
         N = int(float(self.get_option("num_nodes")))
         T_init = float(self.get_option("initial_temp")) + 273.15
-    
-        # Basic tank parameters
+
         tank = ThermalStorageTank(N, {
             'tank_height': H,
             'tank_diameter': D,
@@ -81,7 +79,7 @@ def create_tank_block(num_inputs, num_outputs):
             'T_env': 293.15,
             'T_gfl': 288.15,
         })
-    
+
         # Get inlet configurations
         inlets = []
         for i in range(num_inputs):
@@ -89,7 +87,7 @@ def create_tank_block(num_inputs, num_outputs):
             height = float(self.get_option(f"input_height_{i}"))
             if interface:
                 inlets.append((height, interface["flow_rate"], interface["temperature"], interface["name"]))
-    
+
         # Get outlet configurations
         outlets = []
         for j in range(num_outputs):
@@ -97,21 +95,21 @@ def create_tank_block(num_inputs, num_outputs):
             flowrate = float(self.get_option(f"output_flowrate_{j}"))
             name = self.get_option(f"output_name_{j}")
             outlets.append((height, flowrate, name))
-    
+
         # Check mass balance
         total_in = sum(flow[1] for flow in inlets)
         total_out = sum(flow[1] for flow in outlets)
         if abs(total_in - total_out) > 1e-6:
             st.error(f"⚠️ Mass flow imbalance: In={total_in:.2f} kg/s, Out={total_out:.2f} kg/s")
             return
-    
+
         # Run simulation
-        t_span = np.linspace(0, 3600, 100)  # 1 hour simulation
+        t_span = np.linspace(0, 3600, 100)  # 1 hour
         solution = tank.solve(t_span, {'inlets': inlets, 'outlets': outlets})
-    
-        # Get outlet conditions
+
+        # Set output interfaces and build output data
         outlet_data = []
-        for height, flow_rate, name in outlets:
+        for j, (height, flow_rate, name) in enumerate(outlets):
             temp, _ = tank.get_outlet_conditions(solution, {'inlets': inlets, 'outlets': outlets}, name)
             outlet_data.append({
                 'name': name,
@@ -119,17 +117,17 @@ def create_tank_block(num_inputs, num_outputs):
                 'temperature': temp,
                 'flow_rate': flow_rate
             })
-            
-            # Set output interface
+
             self.set_interface(f"flow_out_{j}", {
                 "temperature": float(temp),
                 "flow_rate": float(flow_rate)
             })
-    
-        # Set tank output
+
         self.set_interface("tank_out", {
             "outlets": outlet_data
         })
+
+    tank_block.add_compute(tank_block_func)
     return tank_block
 
 tank_block = create_tank_block(num_inputs, num_outputs)
@@ -144,8 +142,6 @@ def results_block_func(self):
         return
 
     st.subheader("Tank Outlet Conditions")
-    
-    # Create a simple table for the outlets
     for outlet in results['outlets']:
         st.write(f"""
         **{outlet['name']}**  
@@ -153,39 +149,31 @@ def results_block_func(self):
         - Temperature: {outlet['temperature']:.1f} °C  
         - Mass flow rate: {outlet['flow_rate']:.2f} kg/s  
         """)
-        st.write("---")  # Add a separator between outlets
+        st.write("---")
+
+results_block.add_compute(results_block_func)
 
 blocks = flow_blocks + [tank_block, results_block]
 
-# Step 2: Render the UI and get the StreamlitFlowResponse
+# Barfi flow UI
 barfi_result = st_flow(blocks)
 
-# Step 3: Execute the schema
+# Execute flow
 if barfi_result and barfi_result.editor_schema:
     compute_engine = ComputeEngine(blocks)
     compute_engine.execute(barfi_result.editor_schema)
-    st.write("Editor Schema Nodes:", [node.label for node in barfi_result.editor_schema.nodes])
-    for node in barfi_result.editor_schema.nodes:
-        st.write(f"Block '{node.label}' Interfaces:", node.interfaces)
 
-    # Get list of node labels in current Barfi editor schema
     node_labels = [node.label for node in barfi_result.editor_schema.nodes]
-
-    # Check if both "Tank" and "Results" blocks are placed
     if "Tank" in node_labels and "Results" in node_labels:
         try:
-            # Get the Tank block
             tank_block_node = barfi_result.editor_schema.block(node_label="Tank")
             tank_output = tank_block_node.get_interface("tank_out")
 
-            # Get the Results block
             result_block_node = barfi_result.editor_schema.block(node_label="Results")
 
-            # Inject tank output if it's not already wired
             if not result_block_node.get_interface("results_in") and tank_output:
                 result_block_node.set_interface("results_in", tank_output)
 
-            # Show final result
             result_data = result_block_node.get_interface("results_in")
             if result_data:
                 st.write("Results from Results block:", result_data)
@@ -194,7 +182,3 @@ if barfi_result and barfi_result.editor_schema:
             st.error(f"⚠️ Error during result processing: {e}")
     else:
         st.warning("⚠️ Please add and connect both the **Tank** and **Results** blocks in the editor.")
-
-
-
-
