@@ -11,7 +11,7 @@ from Watertank import ThermalStorageTank
 st.set_page_config(page_title="Thermal Tank Flow Sim", layout="wide")
 st.title("Thermal Tank Flow Simulation")
 st.markdown("Configure flow connections and simulate tank behavior")
-st.markdown("Martijn Stynen & Senne Schepens")
+st.markdown("By Martijn Stynen & Senne Schepens")
 # Sidebar config
 st.sidebar.header("Tank Configuration")
 tank_height = st.sidebar.number_input("Tank Height (m)", value=4.0)
@@ -44,10 +44,10 @@ flow_blocks = [create_flow_block(i) for i in range(num_inputs)]
 def create_tank_block(num_inputs, num_outputs):
     tank_block = Block(name="Tank")
 
-    tank_block.add_option("tank_height", type="input", value="4.0", label="Tank Height (m)")
-    tank_block.add_option("tank_diameter", type="input", value="2.0", label="Tank Diameter (m)")
-    tank_block.add_option("num_nodes", type="input", value="50", label="Number of Nodes")
-    tank_block.add_option("initial_temp", type="input", value="30", label="Initial Temperature (°C)")
+    tank_block.add_option("tank_height", type="input", value="", label="Tank Height (m)")
+    tank_block.add_option("tank_diameter", type="input", value="", label="Tank Diameter (m)")
+    tank_block.add_option("num_nodes", type="input", value="", label="Number of Nodes")
+    tank_block.add_option("initial_temp", type="input", value="", label="Initial Temperature (°C)")
 
     for i in range(num_inputs):
         tank_block.add_option(f"input_height_{i}", type="input", value=str((i + 1) * 1.0), label=f"Input {i+1} Height (m)")
