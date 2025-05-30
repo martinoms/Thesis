@@ -252,6 +252,55 @@ class ThermalStorageTank:
         temperature = solution[time_idx, node_idx] - 273.15
         
         return temperature, flow_rate
+    
+    def get_heat_exchanger_conditions(self, solution, flow_specs, hx_index=0, time_idx=-1):
+        """
+        Get the output conditions of a specified heat exchanger at a given time index.
+        
+        Args:
+            solution (ndarray): Temperature solution array from solve()
+            flow_specs (dict): Flow specifications dictionary
+            hx_index (int): Index of the heat exchanger to query (0-based)
+            time_idx (int): Time index to query (-1 for last time step by default)
+            
+        Returns:
+            tuple: (secondary outlet temperature in °C, 
+                    secondary mass flow rate in kg/s,
+                    heat transfer rate in W)
+                    
+        Raises:
+            IndexError: If hx_index is out of range
+        """
+        if hx_index >= len(self.heat_exchangers):
+            raise IndexError(f"Heat exchanger index {hx_index} out of range (0-{len(self.heat_exchangers)-1})")
+        
+        hx_info = self.heat_exchangers[hx_index]
+        node_idx = hx_info['node_idx']
+        
+        # Get node flow conditions at the specified time
+        node_flow = {'flow_in': 0.0, 'flow_out': 0.0, 'T_in': 0.0}
+        for height, flow_rate, temp, name in flow_specs['inlets']:
+            if node_idx == self.get_node_at_height(height):
+                node_flow['flow_in'] += flow_rate
+        for height, flow_rate, name in flow_specs['outlets']:
+            if node_idx == self.get_node_at_height(height):
+                node_flow['flow_out'] += flow_rate
+        
+        flows = self.calculate_flows(node_flow, node_idx)
+        m_dot_local = abs(flows['FL4'] - flows['FL6'])
+        
+        # Calculate heat exchanger performance
+        Q, T_out_secondary = hx_info['hx'].calculate_heat_transfer(
+            solution[time_idx, node_idx], 
+            m_dot_local
+        )
+        
+        # Convert to appropriate units
+        return (
+            T_out_secondary - 273.15,  # Convert K to °C
+            hx_info['hx'].params['m_dot_secondary'],
+            Q
+        )
     def calculate_flows(self, external_flow, current_node):
         """Calculate flow distribution for current node"""
         FL3 = external_flow['flow_in'] - external_flow['flow_out']
@@ -676,6 +725,37 @@ class ThermalStorageTank:
 if __name__ == "__main__":
     num_nodes = 50
     H = 4.0
+    tube_hx_params = {
+    'type': 'tube',  # Specify this is a tube heat exchanger
+    'height': 2.5,   # Installation height in the tank [m]
+    'length': 3.0,   # Length of each tube [m]
+    'diameter': 0.05,  # Diameter of tubes [m]
+    'num_tubes': 10,  # Number of parallel tubes
+    'U': 850,        # Overall heat transfer coefficient [W/m²K]
+    'fluid': 'primary',  # 'primary' (tank fluid) or 'secondary' (external fluid)
+    'm_dot_secondary': 2.5,  # Secondary fluid flow rate [kg/s]
+    'Cp_secondary': 4186,    # Secondary fluid heat capacity [J/kgK]
+    'T_in_HE': 60.0,         # Secondary fluid inlet temperature [°C]
+    # Optional parameters:
+    'effectiveness': None,   # If specified, fixes effectiveness (None for calculated)
+    'name': "Primary Tube HX"  # Optional identifier
+}
+    plate_hx_params = {
+    'type': 'plate',  # Specify this is a plate heat exchanger
+    'height': 1.0,   # Installation height in the tank [m]
+    'num_plates': 30,  # Number of plates
+    'plate_width': 0.5,  # Width of each plate [m]
+    'plate_height': 1.0,  # Height of each plate [m]
+    'U': 2500,        # Overall heat transfer coefficient [W/m²K]
+    'fluid': 'secondary',  # 'primary' or 'secondary'
+    'm_dot_secondary': 10.0,  # Secondary fluid flow rate [kg/s]
+    'Cp_secondary': 4186,    # Secondary fluid heat capacity [J/kgK] (e.g., glycol mix)
+    'T_in_HE': 60.0,         # Secondary fluid inlet temperature [°C]
+    'flow_arrangement': 'counterflow',  # 'counterflow' or 'parallel'
+    # Optional parameters:
+    'effectiveness': None,   # If specified, fixes effectiveness
+    'name': "Secondary Plate HX"  # Optional identifier
+}     
     # Creëer een gestratificeerde initiële temperatuurverdeling
     node_heights = np.linspace(2.0, 0, num_nodes)  # Tankhoogte van 2m
     initial_T = np.where(node_heights > 1.0, 90, 70)  # 80°C boven 1m, 20°C eronder
@@ -692,7 +772,9 @@ if __name__ == "__main__":
         'T_env': 20 + 273.15,
         'T_gfl': 15 + 273.15,
         'T_initial': initial_T,  
-        'heat_exchangers': []
+        'heat_exchangers': [
+            
+            ]
         }
 
      
@@ -720,3 +802,7 @@ if __name__ == "__main__":
     # Get at specific time index
     temp, flow = tank.get_outlet_conditions(solution, flow_specs, "Mixed Outlet", time_idx=50)
     print(f"At time index 50 - Temperature: {temp:.2f}°C, Flow rate: {flow:.2f} kg/s")
+    
+    # Get conditions at a specific time index
+T_out, m_dot, Q = tank.get_heat_exchanger_conditions(solution, flow_specs, hx_index=0, time_idx=50)
+print(f"At time index 50 - Outlet Temp: {T_out:.2f}°C, Flow: {m_dot:.2f} kg/s, Heat Transfer: {Q/1000:.2f} kW")
