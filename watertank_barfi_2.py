@@ -345,25 +345,25 @@ def results_block_func(self):
         else:
             st.write("No heat exchangers active")
 
-    # Visualization
-    if st.button("Visualize Tank Stratification"):
-        tank = ThermalStorageTank(1, {'tank_height': 1, 'tank_diameter': 1, 'T_initial': 293.15})
-        tank.visualize_results(
-            results['solution'], 
-            results['t_span'], 
-            results['flow_specs']
-        )
+    # # Visualization
+    # if st.button("Visualize Tank Stratification"):
+    #     tank = ThermalStorageTank(1, {'tank_height': 1, 'tank_diameter': 1, 'T_initial': 293.15})
+    #     tank.visualize_results(
+    #         results['solution'], 
+    #         results['t_span'], 
+    #         results['flow_specs']
+    #     )
         
-    if st.button("Show Temperature Profile"):
-        fig, ax = plt.subplots()
-        heights = np.linspace(0, results['flow_specs']['tank_height'], len(results['tank_temps']))
-        ax.plot(results['tank_temps'] - 273.15, heights)  # Convert to °C
-        ax.set_xlabel("Temperature (°C)")
-        ax.set_ylabel("Height (m)")
-        ax.set_title("Final Temperature Stratification")
-        st.pyplot(fig)
+    # if st.button("Show Temperature Profile"):
+    #     fig, ax = plt.subplots()
+    #     heights = np.linspace(0, results['flow_specs']['tank_height'], len(results['tank_temps']))
+    #     ax.plot(results['tank_temps'] - 273.15, heights)  # Convert to °C
+    #     ax.set_xlabel("Temperature (°C)")
+    #     ax.set_ylabel("Height (m)")
+    #     ax.set_title("Final Temperature Stratification")
+    #     st.pyplot(fig)
 
-results_block.add_compute(results_block_func)
+    results_block.add_compute(results_block_func)
 
     # --- Assemble Blocks ---
     flow_blocks = [create_flow_block(i) for i in range(config['num_inputs'])]
