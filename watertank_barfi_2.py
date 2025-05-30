@@ -178,7 +178,7 @@ def create_tank_block(num_inputs, num_outputs):
     return tank_block
 
 
-tank_block.add_compute(tank_block_func)
+
 
 # Results Block
 results_block = Block(name="Results")
