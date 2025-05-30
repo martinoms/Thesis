@@ -165,12 +165,25 @@ if barfi_result and barfi_result.editor_schema:
     compute_engine = ComputeEngine(blocks)
     compute_engine.execute(barfi_result.editor_schema)
 
-    # Optional: inspect the results from a specific block
-    result_block = barfi_result.editor_schema.block(node_label="Results")
+    try:
+        # Try to get the tank block output
+        tank_output_block = barfi_result.editor_schema.block(node_label="Tank")
+        tank_output_data = tank_output_block.get_interface("tank_out")
 
+        # Find the Results block
+        result_block = barfi_result.editor_schema.block(node_label="Results")
 
-    result_data = result_block.get_interface("results_in")
-    if result_data:
-        st.write("Results from Results block:", result_data)
+        # If nothing is wired to the "results_in" input, inject data from the tank
+        if not result_block.get_interface("results_in") and tank_output_data:
+            result_block.set_interface("results_in", tank_output_data)
+
+        # Now render the results safely
+        result_data = result_block.get_interface("results_in")
+        if result_data:
+            st.write("Results from Results block:", result_data)
+
+    except Exception as e:
+        st.error(f"⚠️ Error fetching block data: {e}")
+
 
 
