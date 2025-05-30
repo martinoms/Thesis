@@ -62,20 +62,23 @@ elif page == "Launch Simulation":
     def create_heat_exchanger_block():
         hx_block = Block(name="Heat Exchanger")
         
-        # Inputs for secondary side
-        hx_block.add_input(name="secondary_in")
-        hx_block.add_output(name="secondary_out")
+        # Input/Output
+        hx_block.add_input(name="tank_connection")  # Connection to tank
+        hx_block.add_output(name="secondary_out")   # Secondary side output
         
-        # Options for configuration
+        # Configuration options
         hx_block.add_option("hx_type", type="select", value="tube", 
                           items=[{"label": "Tube", "value": "tube"}, 
                                 {"label": "Plate", "value": "plate"}], 
                           label="Type")
+        
         hx_block.add_option("height", type="input", value="2.0", label="Height (m)")
         hx_block.add_option("fluid_side", type="select", value="primary", 
                           items=[{"label": "Primary", "value": "primary"}, 
                                 {"label": "Secondary", "value": "secondary"}], 
                           label="Fluid Side")
+        
+        # Secondary side parameters
         hx_block.add_option("m_dot_secondary", type="input", value="2.5", label="Flow Rate (kg/s)")
         hx_block.add_option("Cp_secondary", type="input", value="4186", label="Cp (J/kgK)")
         hx_block.add_option("T_in_HE", type="input", value="60.0", label="Inlet Temp (°C)")
@@ -107,13 +110,13 @@ elif page == "Launch Simulation":
             
             # Create appropriate params dict based on type
             params = {
+                'type': hx_type,
                 'height': height,
-                'U': U_value,
                 'fluid': fluid_side,
                 'm_dot_secondary': m_dot_secondary,
                 'Cp_secondary': Cp_secondary,
                 'T_in_HE': T_in_HE,
-                'type': hx_type
+                'U': U_value
             }
             
             if hx_type == "tube":
@@ -130,21 +133,15 @@ elif page == "Launch Simulation":
                     'flow_arrangement': self.get_option("flow_arrangement")
                 })
             
-            # Get secondary inlet conditions if connected
-            secondary_in = self.get_interface("secondary_in")
-            if secondary_in:
-                params['T_in_HE'] = secondary_in.get('temperature', T_in_HE)
-                params['m_dot_secondary'] = secondary_in.get('flow_rate', m_dot_secondary)
+            # Get any connected secondary input
+            secondary_in = self.get_interface("tank_connection")
+            if secondary_in and 'temperature' in secondary_in:
+                params['T_in_HE'] = secondary_in['temperature']
             
-            # For demonstration - calculate heat transfer with dummy values
-            temp_drop = 10  # Example temperature drop
-            heat_transfer = m_dot_secondary * Cp_secondary * temp_drop
-            
+            # Set output with all parameters
             self.set_interface("secondary_out", {
-                "temperature": params['T_in_HE'] - temp_drop,
-                "flow_rate": params['m_dot_secondary'],
-                "heat_transfer": heat_transfer,
-                "hx_params": params
+                "hx_params": params,
+                "connected": secondary_in is not None
             })
         
         hx_block.add_compute(hx_block_func)
@@ -159,26 +156,28 @@ elif page == "Launch Simulation":
         tank_block.add_option("num_nodes", type="input", value=str(config['num_nodes']), label="Number of Nodes")
         tank_block.add_option("initial_temp", type="input", value="60.0", label="Initial Temperature (°C)")
 
+        # Add inputs and outputs
         for i in range(num_inputs):
-            tank_block.add_option(f"input_height_{i}", type="input", value=str((i + 1) * 1.0), label=f"Input {i+1} Height (m)")
             tank_block.add_input(name=f"flow_in_{i}")
+            tank_block.add_option(f"input_height_{i}", type="input", value=str((i + 1) * 1.0), label=f"Input {i+1} Height (m)")
 
         for j in range(num_outputs):
+            tank_block.add_output(name=f"flow_out_{j}")
             tank_block.add_option(f"output_height_{j}", type="input", value=str((j + 1) * 1.0), label=f"Output {j+1} Height (m)")
             tank_block.add_option(f"output_flowrate_{j}", type="input", value="5.0", label=f"Output {j+1} Flowrate (kg/s)")
             tank_block.add_option(f"output_name_{j}", type="input", value=f"Outlet {j+1}", label=f"Output {j+1} Name")
-            tank_block.add_output(name=f"flow_out_{j}")
 
         tank_block.add_output(name="tank_out")
 
         def tank_block_func(self):
+            # Get tank parameters
             H = float(self.get_option("tank_height"))
             D = float(self.get_option("tank_diameter"))
             N = int(float(self.get_option("num_nodes")))
             T_init = float(self.get_option("initial_temp")) + 273.15
 
-            # Initialize tank with parameters
-            tank = ThermalStorageTank(N, {
+            # Initialize tank with basic parameters
+            tank_params = {
                 'tank_height': H,
                 'tank_diameter': D,
                 'T_initial': T_init,
@@ -190,26 +189,44 @@ elif page == "Launch Simulation":
                 'epsilon': 0.5,
                 'T_env': 293.15,
                 'T_gfl': 288.15,
-            })
+            }
 
-            # Process inlets
+            # Process inlets and heat exchangers
             inlets = []
+            heat_exchangers = []
+            
             for i in range(num_inputs):
                 interface = self.get_interface(f"flow_in_{i}")
                 height = float(self.get_option(f"input_height_{i}"))
+                
                 if interface:
-                    if 'hx_params' in interface:
-                        # This is a heat exchanger connection
+                    if 'hx_params' in interface:  # This is a heat exchanger connection
                         hx_params = interface['hx_params']
-                        tank.heat_exchangers.append({
+                        heat_exchangers.append({
                             'hx': TubeHeatExchanger(hx_params, 4186) if hx_params['type'] == 'tube' 
                                   else PlateHeatExchanger(hx_params, 4186),
-                            'node_idx': tank.get_node_at_height(float(hx_params['height'])),
+                            'node_idx': int(height / H * N),  # Convert height to node index
                             'type': hx_params['type']
                         })
-                    else:
-                        # Regular flow input
-                        inlets.append((height, interface["flow_rate"], interface["temperature"], interface.get("name", f"Inlet {i+1}")))
+                    else:  # Regular flow input
+                        inlets.append((
+                            height, 
+                            interface["flow_rate"], 
+                            interface["temperature"], 
+                            interface.get("name", f"Inlet {i+1}")
+                        ))
+
+            # Add heat exchangers to tank parameters
+            tank_params['heat_exchangers'] = [
+                {
+                    'height': hx['hx'].params['height'],
+                    'type': hx['type'],
+                    **hx['hx'].params
+                } for hx in heat_exchangers
+            ]
+
+            # Create tank instance
+            tank = ThermalStorageTank(N, tank_params)
 
             # Process outlets
             outlets = []
@@ -240,7 +257,6 @@ elif page == "Launch Simulation":
                     'temperature': temp,
                     'flow_rate': flow_rate
                 })
-
                 self.set_interface(f"flow_out_{j}", {
                     "temperature": float(temp),
                     "flow_rate": float(flow_rate)
@@ -248,14 +264,14 @@ elif page == "Launch Simulation":
 
             # Prepare heat exchanger results
             hx_results = []
-            for idx, hx in enumerate(tank.heat_exchangers):
+            for idx, hx in enumerate(heat_exchangers):
                 T_out, m_dot, Q = tank.get_heat_exchanger_conditions(
                     solution, {'inlets': inlets, 'outlets': outlets}, 
                     hx_index=idx
                 )
                 hx_results.append({
                     'type': hx['type'],
-                    'height': tank.node_heights[hx['node_idx']],
+                    'height': hx['hx'].params['height'],
                     'm_dot_secondary': hx['hx'].params['m_dot_secondary'],
                     'T_in_HE': hx['hx'].params['T_in_HE'],
                     'T_out_HE': T_out,
@@ -264,7 +280,8 @@ elif page == "Launch Simulation":
 
             self.set_interface("tank_out", {
                 "outlets": outlet_data,
-                "heat_exchangers": hx_results
+                "heat_exchangers": hx_results,
+                "tank_params": tank_params
             })
 
         tank_block.add_compute(tank_block_func)
@@ -280,6 +297,11 @@ elif page == "Launch Simulation":
             if not results:
                 return
 
+            st.subheader("Tank Configuration")
+            st.write(f"Height: {results['tank_params']['tank_height']} m")
+            st.write(f"Diameter: {results['tank_params']['tank_diameter']} m")
+            st.write(f"Nodes: {results['tank_params'].get('num_nodes', 'N/A')}")
+            
             st.subheader("Tank Outlet Conditions")
             for outlet in results.get('outlets', []):
                 st.write(f"""
