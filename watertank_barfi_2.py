@@ -307,61 +307,61 @@ elif page == "Launch Simulation":
         tank_block.add_compute(tank_block_func)
         return tank_block
 
-    # --- Results Block ---
-results_block = Block(name="Results")
-results_block.add_input(name="results_in")
-
-def results_block_func(self):
-    results = self.get_interface("results_in")
-    if not results:
-        return
-
-    st.subheader("Simulation Results")
-    col1, col2 = st.columns(2)
+        # --- Results Block ---
+    results_block = Block(name="Results")
+    results_block.add_input(name="results_in")
     
-    with col1:
-        st.subheader("Tank Outlet Conditions")
-        for outlet in results['outlets']:
-            st.write(f"""
-            **{outlet['name']}**  
-            - Height: {outlet['height']:.2f} m  
-            - Temperature: {outlet['temperature']:.1f} °C  
-            - Mass flow rate: {outlet['flow_rate']:.2f} kg/s  
-            """)
-            st.write("---")
-
-    with col2:
-        st.subheader("Heat Exchanger Performance")
-        if results.get('heat_exchangers'):
-            for i, hx in enumerate(results['heat_exchangers']):
+    def results_block_func(self):
+        results = self.get_interface("results_in")
+        if not results:
+            return
+    
+        st.subheader("Simulation Results")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.subheader("Tank Outlet Conditions")
+            for outlet in results['outlets']:
                 st.write(f"""
-                **Heat Exchanger {i+1}**  
-                - Height: {hx['height']:.2f} m  
-                - Heat Transfer: {hx['Q']/1000:.2f} kW  
-                - Secondary Outlet Temp: {hx['T_out_secondary']:.1f} °C  
-                - Secondary Flow Rate: {hx['m_dot_secondary']:.2f} kg/s  
+                **{outlet['name']}**  
+                - Height: {outlet['height']:.2f} m  
+                - Temperature: {outlet['temperature']:.1f} °C  
+                - Mass flow rate: {outlet['flow_rate']:.2f} kg/s  
                 """)
                 st.write("---")
-        else:
-            st.write("No heat exchangers active")
-
-    # # Visualization
-    # if st.button("Visualize Tank Stratification"):
-    #     tank = ThermalStorageTank(1, {'tank_height': 1, 'tank_diameter': 1, 'T_initial': 293.15})
-    #     tank.visualize_results(
-    #         results['solution'], 
-    #         results['t_span'], 
-    #         results['flow_specs']
-    #     )
-        
-    # if st.button("Show Temperature Profile"):
-    #     fig, ax = plt.subplots()
-    #     heights = np.linspace(0, results['flow_specs']['tank_height'], len(results['tank_temps']))
-    #     ax.plot(results['tank_temps'] - 273.15, heights)  # Convert to °C
-    #     ax.set_xlabel("Temperature (°C)")
-    #     ax.set_ylabel("Height (m)")
-    #     ax.set_title("Final Temperature Stratification")
-    #     st.pyplot(fig)
+    
+        with col2:
+            st.subheader("Heat Exchanger Performance")
+            if results.get('heat_exchangers'):
+                for i, hx in enumerate(results['heat_exchangers']):
+                    st.write(f"""
+                    **Heat Exchanger {i+1}**  
+                    - Height: {hx['height']:.2f} m  
+                    - Heat Transfer: {hx['Q']/1000:.2f} kW  
+                    - Secondary Outlet Temp: {hx['T_out_secondary']:.1f} °C  
+                    - Secondary Flow Rate: {hx['m_dot_secondary']:.2f} kg/s  
+                    """)
+                    st.write("---")
+            else:
+                st.write("No heat exchangers active")
+    
+        # # Visualization
+        # if st.button("Visualize Tank Stratification"):
+        #     tank = ThermalStorageTank(1, {'tank_height': 1, 'tank_diameter': 1, 'T_initial': 293.15})
+        #     tank.visualize_results(
+        #         results['solution'], 
+        #         results['t_span'], 
+        #         results['flow_specs']
+        #     )
+            
+        # if st.button("Show Temperature Profile"):
+        #     fig, ax = plt.subplots()
+        #     heights = np.linspace(0, results['flow_specs']['tank_height'], len(results['tank_temps']))
+        #     ax.plot(results['tank_temps'] - 273.15, heights)  # Convert to °C
+        #     ax.set_xlabel("Temperature (°C)")
+        #     ax.set_ylabel("Height (m)")
+        #     ax.set_title("Final Temperature Stratification")
+        #     st.pyplot(fig)
 
     results_block.add_compute(results_block_func)
 
