@@ -164,6 +164,9 @@ barfi_result = st_flow(blocks)
 if barfi_result and barfi_result.editor_schema:
     compute_engine = ComputeEngine(blocks)
     compute_engine.execute(barfi_result.editor_schema)
+    st.write("Editor Schema Nodes:", [node.label for node in barfi_result.editor_schema.nodes])
+    for node in barfi_result.editor_schema.nodes:
+        st.write(f"Block '{node.label}' Interfaces:", node.interfaces)
 
     # Get list of node labels in current Barfi editor schema
     node_labels = [node.label for node in barfi_result.editor_schema.nodes]
