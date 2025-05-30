@@ -219,6 +219,39 @@ class ThermalStorageTank:
         """Get node index closest to specified height"""
         return np.argmin(np.abs(self.node_heights - height))
     
+    def get_outlet_conditions(self, solution, flow_specs, outlet_name, time_idx=-1):
+        """
+        Get the temperature and mass flow rate of a specified outlet at a given time index.
+        
+        Args:
+            solution (ndarray): Temperature solution array from solve()
+            flow_specs (dict): Flow specifications dictionary
+            outlet_name (str): Name of the outlet to query (must match name in flow_specs)
+            time_idx (int): Time index to query (-1 for last time step by default)
+            
+        Returns:
+            tuple: (temperature in °C, mass flow rate in kg/s)
+            
+        Raises:
+            ValueError: If outlet name is not found
+        """
+        # Find the outlet in flow_specs
+        outlet = None
+        for height, flow_rate, name in flow_specs['outlets']:
+            if name == outlet_name:
+                outlet = (height, flow_rate, name)
+                break
+                
+        if outlet is None:
+            raise ValueError(f"Outlet '{outlet_name}' not found in flow specifications")
+        
+        height, flow_rate, name = outlet
+        node_idx = self.get_node_at_height(height)
+        
+        # Get temperature (convert from K to °C)
+        temperature = solution[time_idx, node_idx] - 273.15
+        
+        return temperature, flow_rate
     def calculate_flows(self, external_flow, current_node):
         """Calculate flow distribution for current node"""
         FL3 = external_flow['flow_in'] - external_flow['flow_out']
@@ -659,47 +692,9 @@ if __name__ == "__main__":
         'T_env': 20 + 273.15,
         'T_gfl': 15 + 273.15,
         'T_initial': initial_T,  
-        'heat_exchangers': [
-            # Tube HX
-            # {
-            #     'type': 'tube',
-            #     'height': 0.5,
-            #     'length': 0.2, 
-            #     'diameter': 0.05,
-            #     'num_tubes': 40,
-            #     'U': 500,
-            #     'fluid': 'secondary',
-            #     'm_dot_secondary': 20,
-            #     'Cp_secondary': 4186,
-            #     'T_in_HE': 90
-            # }
-            # Plate HX
-            {
-                'type': 'plate',
-                'height': 1.0,
-                'area': 2.5,
-                'U': 3000,
-                'fluid': 'secondary',
-                'm_dot_secondary': 10,
-                'Cp_secondary': 4186,
-                'T_in_HE': 90,
-                'flow_arrangement': 'counterflow'
-            }
-#             {
-#     'type': 'plate',
-#     'height': 1.0,
-#     'num_plates': 50,  # aantal platen
-#     'plate_width': 0.5,  # breedte van elke plaat in meters
-#     'plate_height': 0.3,  # hoogte van elke plaat in meters
-#     'U': 3000,
-#     'fluid': 'secondary',
-#     'm_dot_secondary': 10,
-#     'Cp_secondary': 4186,
-#     'T_in_HE': 90,
-#     'flow_arrangement': 'counterflow'
-# }
-        ]
-    }
+        'heat_exchangers': []
+        }
+
      
     tank = ThermalStorageTank(num_nodes, params)
     
@@ -717,3 +712,11 @@ if __name__ == "__main__":
     t_span = np.linspace(0, 3600, 100)
     solution = tank.solve(t_span, flow_specs)
     tank.visualize_results(solution, t_span, flow_specs) 
+
+    # Get outlet conditions (defaults to last time step)
+    temp, flow = tank.get_outlet_conditions(solution, flow_specs, "Mixed Outlet")
+    print(f"Outlet temperature: {temp:.2f}°C, Flow rate: {flow:.2f} kg/s")
+    
+    # Get at specific time index
+    temp, flow = tank.get_outlet_conditions(solution, flow_specs, "Mixed Outlet", time_idx=50)
+    print(f"At time index 50 - Temperature: {temp:.2f}°C, Flow rate: {flow:.2f} kg/s")
