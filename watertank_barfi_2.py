@@ -155,13 +155,20 @@ def results_block_func(self):
         """)
         st.write("---")  # Add a separator between outlets
 
-results_block.add_compute(results_block_func)
+blocks = flow_blocks + [tank_block, results_block]
 
-# Assemble flow
-flow = st_flow(flow_blocks + [tank_block, results_block])
-engine = ComputeEngine(flow_blocks + [tank_block, results_block])
-if flow and flow.schema:
-    engine.execute(flow.schema)
+# Step 2: Render the UI and get the StreamlitFlowResponse
+barfi_result = st_flow(blocks)
 
+# Step 3: Execute the schema
+if barfi_result and barfi_result.editor_schema:
+    compute_engine = ComputeEngine(blocks)
+    compute_engine.execute(barfi_result.editor_schema)
+
+    # Optional: inspect the results from a specific block
+    result_block = barfi_result.editor_schema.block(node_label="Results")
+    result_data = result_block.get_interface("results_in")
+    if result_data:
+        st.write("Results from Results block:", result_data)
 
 
