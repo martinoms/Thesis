@@ -72,10 +72,10 @@ elif page == "Launch Simulation":
     
     # Options - Fixed the select options by properly specifying items
     hx.add_option("hx_type", type="select", 
-                 options=["Tube", "Plate"], value="Tube", label="Type")
+                 items=["Tube", "Plate"], value="Tube", label="Type")
     hx.add_option("height", type="input", value=str((i+1)*1.0), label="Height in Tank (m)")
     hx.add_option("fluid_side", type="select", 
-                 options=["Primary", "Secondary"], value="Primary", label="Fluid Side")
+                 items=["Primary", "Secondary"], value="Primary", label="Fluid Side")
     hx.add_option("U_value", type="input", value="1000.0", label="U Value (W/m²K)")
     hx.add_option("length", type="input", value="5.0", label="Length (m)")
     hx.add_option("diameter", type="input", value="0.05", label="Diameter (m)")
@@ -84,7 +84,7 @@ elif page == "Launch Simulation":
     hx.add_option("Cp_secondary", type="input", value="4186", label="Secondary Cp (J/kgK)")
     hx.add_option("T_in_secondary", type="input", value="60.0", label="Secondary Inlet Temp (°C)")
     hx.add_option("flow_arrangement", type="select", 
-                 options=["Counterflow", "Parallel"], value="Counterflow", label="Flow Arrangement")
+                 items=["Counterflow", "Parallel"], value="Counterflow", label="Flow Arrangement")
     
     def hx_func(self):
         # Get primary flow conditions if connected
