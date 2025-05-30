@@ -66,54 +66,119 @@ for j in range(num_outputs):
     tank_block.add_output(name=f"flow out {j}")
 
 # Tank compute function
-def tank_block_func(self):
-    params = {
-        'tank_height': float(self.get_option("tank_height")),
-        'tank_diameter': float(self.get_option("tank_diameter")),
-        'num_nodes': int(float(self.get_option("num_nodes"))),
-        'initial_temp': 20.0,
+from barfi import Block
+import numpy as np
+from your_module import ThermalStorageTank  # Ensure correct import
+
+def create_tank_block(num_inputs, num_outputs):
+    tank_block = Block(name="Tank")
+
+    # User-configurable tank properties
+    tank_block.add_option("tank_height", type="input", value="4.0", label="Tank Height (m)")
+    tank_block.add_option("tank_diameter", type="input", value="2.0", label="Tank Diameter (m)")
+    tank_block.add_option("num_nodes", type="input", value="50", label="Number of Nodes")
+    tank_block.add_option("initial_temp", type="input", value="92", label="Initial Temperature (°C)")
+
+    # Fixed advanced parameters (can also be converted to options if needed)
+    advanced_params = {
         'C_fl': 4186,
-        'k_fl': 0.6
+        'k_fl': 0.0,
+        'delta_k_eff': 0.0,
+        'UA_i': 0.0,
+        'UA_gfl': 0.0,
+        'epsilon': 0.5,
+        'T_env': 293.15,   # 20°C
+        'T_gfl': 288.15,   # 15°C
     }
 
-    tank = ThermalStorageTank(params['num_nodes'], params)
-    inlets = []
-    outlets = []
+    # Outputs
+    tank_block.add_output(name="tank_out")
 
+    # Dynamic flow inputs and outputs
     for i in range(num_inputs):
-        input_name = f"flow_in_{i}"
-        if self.get_interface(input_name):
-            data = self.get_interface(input_name)
-            height = params['tank_height'] * (i + 1) / (num_inputs + 1)
-            inlets.append((height, data['flow_rate'], data['temperature'], data['name']))
+        tank_block.add_input(name=f"flow_in_{i}")
 
     for j in range(num_outputs):
-        height = params['tank_height'] * (j + 1) / (num_outputs + 1)
-        flow_rate = sum(f[1] for f in inlets) / num_outputs if inlets else 5.0
-        outlets.append((height, flow_rate, f"Outlet {j+1}"))
+        tank_block.add_output(name=f"flow_out_{j}")
 
-    t_span = np.linspace(0, 3600, 100)
-    solution = tank.solve(t_span, {'inlets': inlets, 'outlets': outlets})
-    final_temps = solution[-1, :] - 273.15
-    node_heights = np.linspace(params['tank_height'], 0, params['num_nodes'])
+    def tank_block_func(self):
+        # Gather options
+        H = float(self.get_option("tank_height"))
+        D = float(self.get_option("tank_diameter"))
+        N = int(float(self.get_option("num_nodes")))
+        T_init = float(self.get_option("initial_temp")) + 273.15
 
-    outlet_temps = []
-    for height, flow_rate, name in outlets:
-        idx = tank.get_node_at_height(height)
-        outlet_temps.append({
-            'name': name,
-            'height': height,
-            'temperature': final_temps[idx],
-            'flow_rate': flow_rate
+        # Build parameter dict
+        params = {
+            'tank_height': H,
+            'tank_diameter': D,
+            'T_initial': T_init,
+            'heat_exchangers': [
+                {
+                    'type': 'plate',
+                    'height': 1.0,
+                    'area': 2.5,
+                    'U': 3000,
+                    'fluid': 'secondary',
+                    'm_dot_secondary': 10,
+                    'Cp_secondary': 4186,
+                    'T_in_HE': 90,
+                    'flow_arrangement': 'counterflow'
+                }
+            ],
+            **advanced_params
+        }
+
+        tank = ThermalStorageTank(N, params)
+
+        # Build inlets
+        inlets = []
+        for i in range(num_inputs):
+            key = f"flow_in_{i}"
+            interface = self.get_interface(key)
+            if interface:
+                height = H * (i + 1) / (num_inputs + 1)
+                inlets.append((height, interface['flow_rate'], interface['temperature'], interface['name']))
+
+        # Build outlets
+        outlets = []
+        if inlets:
+            total_flow = sum(f[1] for f in inlets)
+        else:
+            total_flow = 5.0 * num_outputs  # default
+
+        for j in range(num_outputs):
+            height = H * (j + 1) / (num_outputs + 1)
+            outlets.append((height, total_flow / num_outputs, f"Outlet {j+1}"))
+
+        # Time simulation
+        t_span = np.linspace(0, 3600, 100)
+        solution = tank.solve(t_span, {'inlets': inlets, 'outlets': outlets})
+        final_temps = solution[-1, :] - 273.15
+        node_heights = np.linspace(H, 0, N)
+
+        outlet_temps = []
+        for height, flow_rate, name in outlets:
+            idx = tank.get_node_at_height(height)
+            outlet_temps.append({
+                'name': name,
+                'height': height,
+                'temperature': final_temps[idx],
+                'flow_rate': flow_rate
+            })
+
+        # Output full simulation results
+        self.set_interface("tank_out", {
+            "node_heights": node_heights,
+            "temperatures": final_temps,
+            "outlets": outlet_temps,
+            "inlets": inlets,
+            "params": params
         })
 
-    self.set_interface("tank_out", {
-        "node_heights": node_heights,
-        "temperatures": final_temps,
-        "outlets": outlet_temps,
-        "inlets": inlets,
-        "params": params
-    })
+    tank_block.add_compute(tank_block_func)
+    return tank_block
+
 
 tank_block.add_compute(tank_block_func)
 
