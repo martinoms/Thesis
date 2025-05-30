@@ -21,13 +21,45 @@ if page == "Configure Tank":
     num_nodes = st.sidebar.number_input("Number of Nodes", min_value=5, max_value=100, value=20)
     num_inputs = st.sidebar.number_input("Number of Flow Inputs", min_value=1, max_value=5, value=2)
     num_outputs = st.sidebar.number_input("Number of Flow Outputs", min_value=1, max_value=5, value=2)
+    
+    # Heat Exchanger Configuration
+    st.sidebar.header("Heat Exchanger Configuration")
+    hx_type = st.sidebar.selectbox("Heat Exchanger Type", 
+                                  ["None", "Tube", "Plate"],
+                                  index=0)
+    
+    hx_config = {}
+    if hx_type != "None":
+        hx_config['type'] = hx_type.lower()
+        hx_config['height'] = st.sidebar.number_input("HX Height (m)", 
+                                                     min_value=0.0, 
+                                                     max_value=float(tank_height), 
+                                                     value=2.0)
+        hx_config['m_dot_secondary'] = st.sidebar.number_input("Secondary Flow Rate (kg/s)", 
+                                                              value=2.5)
+        hx_config['T_in_HE'] = st.sidebar.number_input("Secondary Inlet Temp (°C)", 
+                                                      value=60.0)
+        hx_config['U_value'] = st.sidebar.number_input("U Value (W/m²K)", 
+                                                      value=850.0)
+        
+        if hx_type == "Tube":
+            hx_config['length'] = st.sidebar.number_input("Tube Length (m)", value=3.0)
+            hx_config['diameter'] = st.sidebar.number_input("Tube Diameter (m)", value=0.05)
+            hx_config['num_tubes'] = st.sidebar.number_input("Number of Tubes", value=10)
+        else:  # Plate
+            hx_config['num_plates'] = st.sidebar.number_input("Number of Plates", value=30)
+            hx_config['plate_width'] = st.sidebar.number_input("Plate Width (m)", value=0.5)
+            hx_config['plate_height'] = st.sidebar.number_input("Plate Height (m)", value=1.0)
+            hx_config['flow_arrangement'] = st.sidebar.selectbox("Flow Arrangement", 
+                                                                ["counterflow", "parallel"])
 
     st.session_state['tank_config'] = {
         'tank_height': tank_height,
         'tank_diameter': tank_diameter,
         'num_nodes': num_nodes,
         'num_inputs': num_inputs,
-        'num_outputs': num_outputs
+        'num_outputs': num_outputs,
+        'hx_config': hx_config if hx_type != "None" else None
     }
 
     st.success("Configuration saved. Switch to 'Launch Simulation' to begin.")
@@ -58,87 +90,25 @@ elif page == "Launch Simulation":
         fb.add_compute(fb_func)
         return fb
 
-    # --- Heat Exchanger Block Generator ---
+    # --- Heat Exchanger Block ---
     def create_heat_exchanger_block():
+        if not config['hx_config']:
+            return None
+            
         hx_block = Block(name="Heat Exchanger")
+        hx_block.add_output(name="hx_out")
         
-        # Input/Output
-        hx_block.add_input(name="tank_connection")  # Connection to tank
-        hx_block.add_output(name="secondary_out")   # Secondary side output
-        
-        # Configuration options - using simple strings for select options
-        hx_block.add_option("hx_type", type="select", value="tube", 
-                          items=["tube", "plate"], 
-                          label="Type")
-        
-        hx_block.add_option("height", type="input", value="2.0", label="Height (m)")
-        hx_block.add_option("fluid_side", type="select", value="primary", 
-                          items=["primary", "secondary"], 
-                          label="Fluid Side")
-        
-        # Secondary side parameters
-        hx_block.add_option("m_dot_secondary", type="input", value="2.5", label="Flow Rate (kg/s)")
-        hx_block.add_option("Cp_secondary", type="input", value="4186", label="Cp (J/kgK)")
-        hx_block.add_option("T_in_HE", type="input", value="60.0", label="Inlet Temp (°C)")
-        hx_block.add_option("U_value", type="input", value="850", label="U Value (W/m²K)")
-        
-        # Tube-specific options
-        hx_block.add_option("tube_length", type="input", value="3.0", label="Tube Length (m)")
-        hx_block.add_option("tube_diameter", type="input", value="0.05", label="Tube Diam (m)")
-        hx_block.add_option("num_tubes", type="input", value="10", label="Num Tubes")
-        
-        # Plate-specific options
-        hx_block.add_option("num_plates", type="input", value="30", label="Num Plates")
-        hx_block.add_option("plate_width", type="input", value="0.5", label="Plate Width (m)")
-        hx_block.add_option("plate_height", type="input", value="1.0", label="Plate Height (m)")
-        hx_block.add_option("flow_arrangement", type="select", value="counterflow", 
-                          items=["counterflow", "parallel"], 
-                          label="Flow Arrangement")
+        # Display configured parameters
+        hx_type = config['hx_config']['type'].title()
+        hx_block.add_option("info", type="display", 
+                          value=f"Pre-configured {hx_type} HX at {config['hx_config']['height']}m",
+                          label="Configuration")
         
         def hx_block_func(self):
-            # Get configuration from options
-            hx_type = self.get_option("hx_type")
-            height = float(self.get_option("height"))
-            fluid_side = self.get_option("fluid_side")
-            m_dot_secondary = float(self.get_option("m_dot_secondary"))
-            Cp_secondary = float(self.get_option("Cp_secondary"))
-            T_in_HE = float(self.get_option("T_in_HE"))
-            U_value = float(self.get_option("U_value"))
-            
-            # Create appropriate params dict based on type
-            params = {
-                'type': hx_type,
-                'height': height,
-                'fluid': fluid_side,
-                'm_dot_secondary': m_dot_secondary,
-                'Cp_secondary': Cp_secondary,
-                'T_in_HE': T_in_HE,
-                'U': U_value
-            }
-            
-            if hx_type == "tube":
-                params.update({
-                    'length': float(self.get_option("tube_length")),
-                    'diameter': float(self.get_option("tube_diameter")),
-                    'num_tubes': int(float(self.get_option("num_tubes")))
-                })
-            else:  # plate
-                params.update({
-                    'num_plates': int(float(self.get_option("num_plates"))),
-                    'plate_width': float(self.get_option("plate_width")),
-                    'plate_height': float(self.get_option("plate_height")),
-                    'flow_arrangement': self.get_option("flow_arrangement")
-                })
-            
-            # Get any connected secondary input
-            secondary_in = self.get_interface("tank_connection")
-            if secondary_in and 'temperature' in secondary_in:
-                params['T_in_HE'] = secondary_in['temperature']
-            
-            # Set output with all parameters
-            self.set_interface("secondary_out", {
-                "hx_params": params,
-                "connected": secondary_in is not None
+            # Pass through the pre-configured parameters
+            self.set_interface("hx_out", {
+                "hx_params": config['hx_config'],
+                "connected": True
             })
         
         hx_block.add_compute(hx_block_func)
@@ -272,7 +242,8 @@ elif page == "Launch Simulation":
                     'm_dot_secondary': hx['hx'].params['m_dot_secondary'],
                     'T_in_HE': hx['hx'].params['T_in_HE'],
                     'T_out_HE': T_out,
-                    'heat_transfer': Q
+                    'heat_transfer': Q,
+                    'power_kW': Q / 1000  # Add power in kW
                 })
 
             self.set_interface("tank_out", {
@@ -309,16 +280,19 @@ elif page == "Launch Simulation":
                 """)
                 st.write("---")
 
-            st.subheader("Heat Exchanger Performance")
-            for hx in results.get('heat_exchangers', []):
-                st.write(f"""
-                **{hx['type'].title()} Heat Exchanger at {hx['height']:.2f}m**  
-                - Secondary flow: {hx['m_dot_secondary']:.2f} kg/s  
-                - Inlet temp: {hx['T_in_HE']:.1f} °C  
-                - Outlet temp: {hx['T_out_HE']:.1f} °C  
-                - Heat transfer: {hx['heat_transfer']/1000:.2f} kW  
-                """)
-                st.write("---")
+            if results.get('heat_exchangers'):
+                st.subheader("Heat Exchanger Performance")
+                for hx in results['heat_exchangers']:
+                    st.write(f"""
+                    **{hx['type'].title()} Heat Exchanger at {hx['height']:.2f}m**  
+                    - Secondary Flow Rate: {hx['m_dot_secondary']:.2f} kg/s  
+                    - Inlet Temperature: {hx['T_in_HE']:.1f} °C  
+                    - Outlet Temperature: {hx['T_out_HE']:.1f} °C  
+                    - Heat Transfer Power: {hx['power_kW']:.2f} kW  
+                    """)
+                    st.write("---")
+            else:
+                st.write("No heat exchanger configured")
 
         results_block.add_compute(results_block_func)
         return results_block
@@ -329,7 +303,10 @@ elif page == "Launch Simulation":
     hx_block = create_heat_exchanger_block()
     results_block = create_results_block()
 
-    blocks = flow_blocks + [tank_block, hx_block, results_block]
+    blocks = flow_blocks + [tank_block]
+    if hx_block:
+        blocks.append(hx_block)
+    blocks.append(results_block)
 
     # --- Run Flow Editor ---
     barfi_result = st_flow(blocks)
