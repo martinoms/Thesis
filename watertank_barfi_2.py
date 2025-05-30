@@ -155,11 +155,13 @@ def results_block_func(self):
         """)
         st.write("---")  # Add a separator between outlets
 
-# Combine all blocks
-blocks = flow_blocks + [tank_block, results_block]
+results_block.add_compute(results_block_func)
 
-# Render Barfi UI and execute blocks
-st_flow(blocks)
+# Assemble flow
+flow = st_flow(flow_blocks + [tank_block, results_block])
+engine = ComputeEngine(flow_blocks + [tank_block, results_block])
+if flow and flow.schema:
+    engine.execute(flow.schema)
 
 
 
