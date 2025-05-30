@@ -170,7 +170,7 @@ elif page == "Launch Simulation":
     tank_block = create_tank_block(config['num_inputs'], config['num_outputs'])
     blocks = flow_blocks + [tank_block, results_block]
 
-    barfi_result = st_flow(blocks)
+    barfi_result = st_flow(blocks, editable=True))
 
     if barfi_result and barfi_result.editor_schema:
         compute_engine = ComputeEngine(blocks)
