@@ -19,7 +19,7 @@ num_nodes = st.sidebar.number_input("Number of Nodes", min_value=5, max_value=10
 num_inputs = st.sidebar.number_input("Number of Flow Inputs", min_value=1, max_value=5, value=2)
 num_outputs = st.sidebar.number_input("Number of Flow Outputs", min_value=1, max_value=5, value=2)
 
-# Flow block generator (without height)
+# Flow block generator
 def create_flow_block(i):
     fb = Block(name=f"Flow Input {i+1}")
     fb.add_output(name="flow_out")
@@ -37,10 +37,9 @@ def create_flow_block(i):
     fb.add_compute(fb_func)
     return fb
 
-# Create multiple input blocks
 flow_blocks = [create_flow_block(i) for i in range(num_inputs)]
 
-# Tank block with inlet heights defined here
+# Tank block
 def create_tank_block(num_inputs, num_outputs):
     tank_block = Block(name="Tank")
 
@@ -48,13 +47,12 @@ def create_tank_block(num_inputs, num_outputs):
     tank_block.add_option("tank_diameter", type="input", value="2.0", label="Tank Diameter (m)")
     tank_block.add_option("num_nodes", type="input", value="50", label="Number of Nodes")
     tank_block.add_option("initial_temp", type="input", value="30", label="Initial Temperature (°C)")
+    tank_block.add_option("display", type="output", value="", label="Outlet 1 Display")
 
-    # Add height options for each input
     for i in range(num_inputs):
         tank_block.add_option(f"input_height_{i}", type="input", value=str((i + 1) * 1.0), label=f"Input {i+1} Height (m)")
         tank_block.add_input(name=f"flow_in_{i}")
 
-    # Add options and outputs for each output
     for j in range(num_outputs):
         tank_block.add_option(f"output_height_{j}", type="input", value=str((j + 1) * 1.0), label=f"Output {j+1} Height (m)")
         tank_block.add_option(f"output_flowrate_{j}", type="input", value="5.0", label=f"Output {j+1} Flowrate (kg/s)")
@@ -93,12 +91,7 @@ def create_tank_block(num_inputs, num_outputs):
             interface = self.get_interface(f"flow_in_{i}")
             height = float(self.get_option(f"input_height_{i}"))
             if interface:
-                inlets.append((
-                    height,
-                    interface["flow_rate"],
-                    interface["temperature"],
-                    interface["name"]
-                ))
+                inlets.append((height, interface["flow_rate"], interface["temperature"], interface["name"]))
 
         outlets = []
         for j in range(num_outputs):
@@ -107,7 +100,6 @@ def create_tank_block(num_inputs, num_outputs):
             name = self.get_option(f"output_name_{j}")
             outlets.append((height, flowrate, name))
 
-        # Mass balance check
         total_in = sum(flow[1] for flow in inlets)
         total_out = sum(flow[1] for flow in outlets)
         if abs(total_in - total_out) > 1e-6:
@@ -120,14 +112,26 @@ def create_tank_block(num_inputs, num_outputs):
         node_heights = np.linspace(H, 0, N)
 
         outlet_temps = []
-        for height, flow_rate, name in outlets:
+        for j, (height, flow_rate, name) in enumerate(outlets):
             idx = tank.get_node_at_height(height)
+            outlet_temp = final_temps[idx]
             outlet_temps.append({
                 'name': name,
                 'height': height,
-                'temperature': final_temps[idx],
+                'temperature': outlet_temp,
                 'flow_rate': flow_rate
             })
+
+            # ✅ Output to Barfi as float values
+            self.set_interface(f"flow_out_{j}", {
+                "temperature": float(outlet_temp),
+                "flow_rate": float(flow_rate)
+            })
+
+        # ✅ Display outlet 1 as a label
+        if outlet_temps:
+            label = f"{outlet_temps[0]['temperature']:.1f}°C @ {outlet_temps[0]['flow_rate']:.1f} kg/s"
+            self.set_option("display", label)
 
         self.set_interface("tank_out", {
             "node_heights": node_heights,
@@ -139,7 +143,6 @@ def create_tank_block(num_inputs, num_outputs):
     tank_block.add_compute(tank_block_func)
     return tank_block
 
-# Create tank block
 tank_block = create_tank_block(num_inputs, num_outputs)
 
 # Results block
@@ -175,9 +178,8 @@ def results_block_func(self):
 
 results_block.add_compute(results_block_func)
 
-# Create and run flow
+# Assemble flow
 flow = st_flow(flow_blocks + [tank_block, results_block])
-
 engine = ComputeEngine(flow_blocks + [tank_block, results_block])
 if flow and flow.schema:
     engine.execute(flow.schema)
