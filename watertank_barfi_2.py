@@ -47,7 +47,7 @@ def create_tank_block(num_inputs, num_outputs):
     tank_block.add_option("tank_height", type="input", value="4.0", label="Tank Height (m)")
     tank_block.add_option("tank_diameter", type="input", value="2.0", label="Tank Diameter (m)")
     tank_block.add_option("num_nodes", type="input", value="50", label="Number of Nodes")
-    tank_block.add_option("initial_temp", type="input", value="92", label="Initial Temperature (°C)")
+    tank_block.add_option("initial_temp", type="input", value="30", label="Initial Temperature (°C)")
 
     # Add height options for each input
     for i in range(num_inputs):
@@ -71,7 +71,7 @@ def create_tank_block(num_inputs, num_outputs):
 
         advanced_params = {
             'C_fl': 4186,
-            'k_fl': 0.0,
+            'k_fl': 0.6,
             'delta_k_eff': 0.0,
             'UA_i': 0.0,
             'UA_gfl': 0.0,
