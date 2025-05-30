@@ -166,7 +166,8 @@ if barfi_result and barfi_result.editor_schema:
     compute_engine.execute(barfi_result.editor_schema)
 
     # Optional: inspect the results from a specific block
-    result_block = barfi_result.editor_schema.block(name="Results")
+    result_block = barfi_result.editor_schema.block(node_label="Results")
+
 
     result_data = result_block.get_interface("results_in")
     if result_data:
