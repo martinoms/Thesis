@@ -63,69 +63,72 @@ elif page == "Launch Simulation":
         return fb
 
     # --- Heat Exchanger Block Generator ---
-    def create_heat_exchanger_block(i):
-        hx = Block(name=f"Heat Exchanger {i+1}")
+   def create_heat_exchanger_block(i):
+    hx = Block(name=f"Heat Exchanger {i+1}")
+    
+    # Inputs
+    hx.add_input(name="primary_in")
+    hx.add_output(name="primary_out")
+    
+    # Options - Fixed the select options by properly specifying items
+    hx.add_option("hx_type", type="select", 
+                 options=["Tube", "Plate"], value="Tube", label="Type")
+    hx.add_option("height", type="input", value=str((i+1)*1.0), label="Height in Tank (m)")
+    hx.add_option("fluid_side", type="select", 
+                 options=["Primary", "Secondary"], value="Primary", label="Fluid Side")
+    hx.add_option("U_value", type="input", value="1000.0", label="U Value (W/m²K)")
+    hx.add_option("length", type="input", value="5.0", label="Length (m)")
+    hx.add_option("diameter", type="input", value="0.05", label="Diameter (m)")
+    hx.add_option("num_tubes", type="input", value="10", label="Number of Tubes")
+    hx.add_option("m_dot_secondary", type="input", value="5.0", label="Secondary Flow (kg/s)")
+    hx.add_option("Cp_secondary", type="input", value="4186", label="Secondary Cp (J/kgK)")
+    hx.add_option("T_in_secondary", type="input", value="60.0", label="Secondary Inlet Temp (°C)")
+    hx.add_option("flow_arrangement", type="select", 
+                 options=["Counterflow", "Parallel"], value="Counterflow", label="Flow Arrangement")
+    
+    def hx_func(self):
+        # Get primary flow conditions if connected
+        primary_flow = self.get_interface("primary_in")
         
-        # Inputs
-        hx.add_input(name="primary_in")
-        hx.add_output(name="primary_out")
-        
-        # Options
-        hx.add_option("hx_type", type="select", options=["Tube", "Plate"], value="Tube", label="Type")
-        hx.add_option("height", type="input", value=str((i+1)*1.0), label="Height in Tank (m)")
-        hx.add_option("fluid_side", type="select", options=["Primary", "Secondary"], value="Primary", label="Fluid Side")
-        hx.add_option("U_value", type="input", value="1000.0", label="U Value (W/m²K)")
-        hx.add_option("length", type="input", value="5.0", label="Length (m)")
-        hx.add_option("diameter", type="input", value="0.05", label="Diameter (m)")
-        hx.add_option("num_tubes", type="input", value="10", label="Number of Tubes")
-        hx.add_option("m_dot_secondary", type="input", value="5.0", label="Secondary Flow (kg/s)")
-        hx.add_option("Cp_secondary", type="input", value="4186", label="Secondary Cp (J/kgK)")
-        hx.add_option("T_in_secondary", type="input", value="60.0", label="Secondary Inlet Temp (°C)")
-        hx.add_option("flow_arrangement", type="select", options=["Counterflow", "Parallel"], value="Counterflow", label="Flow Arrangement")
-        
-        def hx_func(self):
-            # Get primary flow conditions if connected
-            primary_flow = self.get_interface("primary_in")
+        if primary_flow:
+            # Create heat exchanger parameters
+            hx_params = {
+                'type': self.get_option("hx_type").lower(),
+                'height': float(self.get_option("height")),
+                'U': float(self.get_option("U_value")),
+                'fluid': 'primary' if self.get_option("fluid_side") == "Primary" else 'secondary',
+                'm_dot_secondary': float(self.get_option("m_dot_secondary")),
+                'Cp_secondary': float(self.get_option("Cp_secondary")),
+                'T_in_HE': float(self.get_option("T_in_secondary")),
+                'flow_arrangement': self.get_option("flow_arrangement").lower()
+            }
             
-            if primary_flow:
-                # Create heat exchanger parameters
-                hx_params = {
-                    'type': self.get_option("hx_type").lower(),
-                    'height': float(self.get_option("height")),
-                    'U': float(self.get_option("U_value")),
-                    'fluid': 'primary' if self.get_option("fluid_side") == "Primary" else 'secondary',
-                    'm_dot_secondary': float(self.get_option("m_dot_secondary")),
-                    'Cp_secondary': float(self.get_option("Cp_secondary")),
-                    'T_in_HE': float(self.get_option("T_in_secondary")),
-                    'flow_arrangement': self.get_option("flow_arrangement").lower()
-                }
-                
-                # Add type-specific parameters
-                if hx_params['type'] == 'tube':
-                    hx_params.update({
-                        'length': float(self.get_option("length")),
-                        'diameter': float(self.get_option("diameter")),
-                        'num_tubes': int(float(self.get_option("num_tubes")))
-                    })
-                else:  # plate
-                    hx_params.update({
-                        'num_plates': int(float(self.get_option("num_tubes")) + 2),  # Approximate
-                        'plate_width': float(self.get_option("length")),
-                        'plate_height': float(self.get_option("diameter")) * 5  # Approximate aspect ratio
-                    })
-                
-                # Store parameters for tank block to use
-                self.set_interface("primary_out", {
-                    'hx_params': hx_params,
-                    'connected': True
+            # Add type-specific parameters
+            if hx_params['type'] == 'tube':
+                hx_params.update({
+                    'length': float(self.get_option("length")),
+                    'diameter': float(self.get_option("diameter")),
+                    'num_tubes': int(float(self.get_option("num_tubes")))
                 })
-            else:
-                self.set_interface("primary_out", {
-                    'connected': False
+            else:  # plate
+                hx_params.update({
+                    'num_plates': int(float(self.get_option("num_tubes")) + 2),  # Approximate
+                    'plate_width': float(self.get_option("length")),
+                    'plate_height': float(self.get_option("diameter")) * 5  # Approximate aspect ratio
                 })
-                
-        hx.add_compute(hx_func)
-        return hx
+            
+            # Store parameters for tank block to use
+            self.set_interface("primary_out", {
+                'hx_params': hx_params,
+                'connected': True
+            })
+        else:
+            self.set_interface("primary_out", {
+                'connected': False
+            })
+            
+    hx.add_compute(hx_func)
+    return hx
 
     # --- Tank Block Generator ---
     def create_tank_block(num_inputs, num_outputs, max_heat_exchangers):
