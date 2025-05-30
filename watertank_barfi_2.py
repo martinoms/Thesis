@@ -61,7 +61,7 @@ def create_tank_block(num_inputs, num_outputs):
 
     tank_block.add_output(name="tank_out")
 
-   def tank_block_func(self):
+    def tank_block_func(self):
         H = float(self.get_option("tank_height"))
         D = float(self.get_option("tank_diameter"))
         N = int(float(self.get_option("num_nodes")))
