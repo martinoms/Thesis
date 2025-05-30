@@ -11,7 +11,7 @@ from Watertank import ThermalStorageTank
 st.set_page_config(page_title="Thermal Tank Flow Sim", layout="wide")
 st.title("Thermal Tank Flow Simulation")
 st.markdown("Configure flow connections and simulate tank behavior")
-
+st.markdown("Martijn Stynen & Senne Schepens")
 # Sidebar config
 st.sidebar.header("Tank Configuration")
 tank_height = st.sidebar.number_input("Tank Height (m)", value=4.0)
