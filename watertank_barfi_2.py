@@ -202,7 +202,49 @@ elif page == "Launch Simulation":
                 flowrate = float(self.get_option(f"output_flowrate_{j}"))
                 name = self.get_option(f"output_name_{j}")
                 outlets.append((height, flowrate, name))
+                
+            # Collect heat exchanger performance data
+            hx_performance = []
+            for k, hx in enumerate(self.heat_exchangers):
+                node_idx = hx['node_idx']
+                hx_params = hx['hx'].params
+                
+                # Get local flow conditions
+                node_flow = {'flow_in': 0.0, 'flow_out': 0.0, 'T_in': 0.0}
+                for height, flow_rate, temp, name in flow_specs['inlets']:
+                    if node_idx == self.get_node_at_height(height):
+                        node_flow['flow_in'] += flow_rate
+                for height, flow_rate, name in flow_specs['outlets']:
+                    if node_idx == self.get_node_at_height(height):
+                        node_flow['flow_out'] += flow_rate
+                
+                flows = self.calculate_flows(node_flow, node_idx)
+                m_dot_local = abs(flows['FL4'] - flows['FL6'])
+                
+                # Calculate heat exchanger performance
+                Q, T_out_secondary = hx['hx'].calculate_heat_transfer(
+                    solution[final_idx, node_idx], 
+                    m_dot_local
+                )
+                
+                hx_performance.append({
+                    'type': hx_params.get('type', 'tube'),
+                    'height': hx_params['height'],
+                    'Q': Q,
+                    'T_out_secondary': T_out_secondary - 273.15,  # Convert to °C
+                    'm_dot_secondary': hx_params['m_dot_secondary']
+                })
 
+            self.set_interface("tank_out", {
+                "outlets": outlet_data,
+                "solution": solution,
+                "t_span": t_span,
+                "flow_specs": {'inlets': inlets, 'outlets': outlets},
+                "heat_exchangers": hx_performance  # Add HX performance data
+            })
+
+        tank_block.add_compute(tank_block_func)
+        return tank_block
             # Check mass balance
             total_in = sum(flow[1] for flow in inlets)
             total_out = sum(flow[1] for flow in outlets)
@@ -250,14 +292,32 @@ elif page == "Launch Simulation":
             return
 
         st.subheader("Tank Outlet Conditions")
-        for outlet in results['outlets']:
-            st.write(f"""
-            **{outlet['name']}**  
-            - Height: {outlet['height']:.2f} m  
-            - Temperature: {outlet['temperature']:.1f} °C  
-            - Mass flow rate: {outlet['flow_rate']:.2f} kg/s  
-            """)
-            st.write("---")
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            for outlet in results['outlets']:
+                st.write(f"""
+                **{outlet['name']}**  
+                - Height: {outlet['height']:.2f} m  
+                - Temperature: {outlet['temperature']:.1f} °C  
+                - Mass flow rate: {outlet['flow_rate']:.2f} kg/s  
+                """)
+                st.write("---")
+
+        with col2:
+            # Heat Exchanger Performance
+            if 'heat_exchangers' in results:
+                st.subheader("Heat Exchanger Performance")
+                for i, hx_data in enumerate(results['heat_exchangers']):
+                    st.write(f"""
+                    **Heat Exchanger {i+1}**  
+                    - Type: {hx_data['type']}  
+                    - Height: {hx_data['height']:.2f} m  
+                    - Heat Transfer: {hx_data['Q']/1000:.2f} kW  
+                    - Secondary Outlet Temp: {hx_data['T_out_secondary']:.1f} °C  
+                    - Secondary Flow Rate: {hx_data['m_dot_secondary']:.2f} kg/s  
+                    """)
+                    st.write("---")
 
         # Add visualization button
         if st.button("Visualize Results"):
