@@ -804,5 +804,5 @@ if __name__ == "__main__":
     print(f"At time index 50 - Temperature: {temp:.2f}°C, Flow rate: {flow:.2f} kg/s")
     
     # Get conditions at a specific time index
-T_out, m_dot, Q = tank.get_heat_exchanger_conditions(solution, flow_specs, hx_index=0, time_idx=50)
-print(f"At time index 50 - Outlet Temp: {T_out:.2f}°C, Flow: {m_dot:.2f} kg/s, Heat Transfer: {Q/1000:.2f} kW")
+    T_out, m_dot, Q = tank.get_heat_exchanger_conditions(solution, flow_specs, hx_index=0, time_idx=50)
+    print(f"At time index 50 - Outlet Temp: {T_out:.2f}°C, Flow: {m_dot:.2f} kg/s, Heat Transfer: {Q/1000:.2f} kW")
