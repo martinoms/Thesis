@@ -66,16 +66,14 @@ elif page == "Launch Simulation":
         hx_block.add_input(name="tank_connection")  # Connection to tank
         hx_block.add_output(name="secondary_out")   # Secondary side output
         
-        # Configuration options
+        # Configuration options - using simple strings for select options
         hx_block.add_option("hx_type", type="select", value="tube", 
-                          items=[{"label": "Tube", "value": "tube"}, 
-                                {"label": "Plate", "value": "plate"}], 
+                          items=["tube", "plate"], 
                           label="Type")
         
         hx_block.add_option("height", type="input", value="2.0", label="Height (m)")
         hx_block.add_option("fluid_side", type="select", value="primary", 
-                          items=[{"label": "Primary", "value": "primary"}, 
-                                {"label": "Secondary", "value": "secondary"}], 
+                          items=["primary", "secondary"], 
                           label="Fluid Side")
         
         # Secondary side parameters
@@ -94,8 +92,7 @@ elif page == "Launch Simulation":
         hx_block.add_option("plate_width", type="input", value="0.5", label="Plate Width (m)")
         hx_block.add_option("plate_height", type="input", value="1.0", label="Plate Height (m)")
         hx_block.add_option("flow_arrangement", type="select", value="counterflow", 
-                          items=[{"label": "Counterflow", "value": "counterflow"}, 
-                                {"label": "Parallel", "value": "parallel"}], 
+                          items=["counterflow", "parallel"], 
                           label="Flow Arrangement")
         
         def hx_block_func(self):
