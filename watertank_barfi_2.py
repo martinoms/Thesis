@@ -13,12 +13,12 @@ st.title("Thermal Tank Flow Simulation")
 st.markdown("Configure flow connections and simulate tank behavior")
 st.markdown("By Martijn Stynen & Senne Schepens")
 # Sidebar config
-st.sidebar.header("Tank Configuration")
-tank_height = st.sidebar.number_input("Tank Height (m)", value=4.0)
-tank_diameter = st.sidebar.number_input("Tank Diameter (m)", value=2.0)
-num_nodes = st.sidebar.number_input("Number of Nodes", min_value=5, max_value=100, value=20)
-num_inputs = st.sidebar.number_input("Number of Flow Inputs", min_value=1, max_value=5, value=2)
-num_outputs = st.sidebar.number_input("Number of Flow Outputs", min_value=1, max_value=5, value=2)
+#st.sidebar.header("Tank Configuration")
+#tank_height = st.sidebar.number_input("Tank Height (m)", value=4.0)
+#tank_diameter = st.sidebar.number_input("Tank Diameter (m)", value=2.0)
+#num_nodes = st.sidebar.number_input("Number of Nodes", min_value=5, max_value=100, value=20)
+#num_inputs = st.sidebar.number_input("Number of Flow Inputs", min_value=1, max_value=5, value=2)
+#num_outputs = st.sidebar.number_input("Number of Flow Outputs", min_value=1, max_value=5, value=2)
 
 # Flow block generator
 def create_flow_block(i):
