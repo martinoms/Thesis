@@ -47,7 +47,7 @@ def create_tank_block(num_inputs, num_outputs):
     tank_block.add_option("tank_diameter", type="input", value="2.0", label="Tank Diameter (m)")
     tank_block.add_option("num_nodes", type="input", value="50", label="Number of Nodes")
     tank_block.add_option("initial_temp", type="input", value="30", label="Initial Temperature (°C)")
-    tank_block.add_option("display", type="output", value="", label="Outlet 1 Display")
+    #tank_block.add_option("display", type="output", value="", label="Outlet 1 Display")
 
     for i in range(num_inputs):
         tank_block.add_option(f"input_height_{i}", type="input", value=str((i + 1) * 1.0), label=f"Input {i+1} Height (m)")
