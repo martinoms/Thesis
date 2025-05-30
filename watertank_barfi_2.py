@@ -104,7 +104,7 @@ def create_tank_block(num_inputs, num_outputs):
             return
 
         # Run simulation
-        t_span = np.linspace(0, 3600, 100)  # 1 hour
+        t_span = np.linspace(0, 10*3600, 100)  # 1 hour
         solution = tank.solve(t_span, {'inlets': inlets, 'outlets': outlets})
 
         # Set output interfaces and build output data
