@@ -130,6 +130,7 @@ def create_tank_block(num_inputs, num_outputs):
         self.set_interface("tank_out", {
             "outlets": outlet_data
         })
+    return tank_block
 
 tank_block = create_tank_block(num_inputs, num_outputs)
 
