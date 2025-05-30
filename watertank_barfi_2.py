@@ -19,21 +19,19 @@ num_nodes = st.sidebar.number_input("Number of Nodes", min_value=5, max_value=10
 num_inputs = st.sidebar.number_input("Number of Flow Inputs", min_value=1, max_value=5, value=2)
 num_outputs = st.sidebar.number_input("Number of Flow Outputs", min_value=1, max_value=5, value=2)
 
-# Flow block generator
+# Flow block generator (without height)
 def create_flow_block(i):
     fb = Block(name=f"Flow Input {i+1}")
     fb.add_output(name="flow_out")
     fb.add_option("flow_temp", type="input", value="80.0", label="Temperature (°C)")
     fb.add_option("flow_rate", type="input", value="5.0", label="Flow Rate (kg/s)")
     fb.add_option("flow_name", type="input", value=f"Flow {i+1}", label="Flow Name")
-    fb.add_option("flow_height", type="input", value="1.0", label="Height (m)")
 
     def fb_func(self):
         self.set_interface("flow_out", {
             'temperature': float(self.get_option("flow_temp")),
             'flow_rate': float(self.get_option("flow_rate")),
-            'name': self.get_option("flow_name"),
-            'height': float(self.get_option("flow_height"))
+            'name': self.get_option("flow_name")
         })
 
     fb.add_compute(fb_func)
@@ -42,7 +40,7 @@ def create_flow_block(i):
 # Create multiple input blocks
 flow_blocks = [create_flow_block(i) for i in range(num_inputs)]
 
-# Tank block
+# Tank block with inlet heights defined here
 def create_tank_block(num_inputs, num_outputs):
     tank_block = Block(name="Tank")
 
@@ -51,9 +49,12 @@ def create_tank_block(num_inputs, num_outputs):
     tank_block.add_option("num_nodes", type="input", value="50", label="Number of Nodes")
     tank_block.add_option("initial_temp", type="input", value="92", label="Initial Temperature (°C)")
 
+    # Add height options for each input
     for i in range(num_inputs):
+        tank_block.add_option(f"input_height_{i}", type="input", value=str((i + 1) * 1.0), label=f"Input {i+1} Height (m)")
         tank_block.add_input(name=f"flow_in_{i}")
 
+    # Add options and outputs for each output
     for j in range(num_outputs):
         tank_block.add_option(f"output_height_{j}", type="input", value=str((j + 1) * 1.0), label=f"Output {j+1} Height (m)")
         tank_block.add_option(f"output_flowrate_{j}", type="input", value="5.0", label=f"Output {j+1} Flowrate (kg/s)")
@@ -90,9 +91,10 @@ def create_tank_block(num_inputs, num_outputs):
         inlets = []
         for i in range(num_inputs):
             interface = self.get_interface(f"flow_in_{i}")
+            height = float(self.get_option(f"input_height_{i}"))
             if interface:
                 inlets.append((
-                    interface.get("height", H * (i + 1) / (num_inputs + 1)),
+                    height,
                     interface["flow_rate"],
                     interface["temperature"],
                     interface["name"]
@@ -105,10 +107,9 @@ def create_tank_block(num_inputs, num_outputs):
             name = self.get_option(f"output_name_{j}")
             outlets.append((height, flowrate, name))
 
-        # Check: Mass flow in = out
+        # Mass balance check
         total_in = sum(flow[1] for flow in inlets)
         total_out = sum(flow[1] for flow in outlets)
-
         if abs(total_in - total_out) > 1e-6:
             st.error(f"⚠️ Incoming mass flow ({total_in:.2f} kg/s) ≠ Outgoing mass flow ({total_out:.2f} kg/s)")
             return
