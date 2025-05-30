@@ -156,7 +156,11 @@ def results_block_func(self):
         st.write("---")  # Add a separator between outlets
 
 # Assemble flow
-flow = st_flow(flow_blocks + [tank_block, results_block])
-engine = ComputeEngine(flow_blocks + [tank_block, results_block])
-if flow and flow.schema:
-    engine.execute(flow.schema)
+blocks = flow_blocks + [tank_block, results_block]
+flow_response = st_flow(blocks)
+engine = ComputeEngine(blocks)
+
+# Proper way to extract schema (if needed) from `flow_response`
+if flow_response and flow_response.flow:
+    engine.execute(flow_response.flow)
+
