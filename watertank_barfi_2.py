@@ -29,9 +29,10 @@ num_outputs = st.sidebar.number_input("Number of Flow Outputs", min_value=1, max
 def create_flow_block(i):
     fb = Block(name=f"Flow Input {i+1}")
     fb.add_output(name="flow_out")
-    fb.add_option(name=f"flow_temp", type="input", value="80.0", label="Temperature (°C)")
-    fb.add_option(name=f"flow_rate", type="input", value="5.0", label="Flow Rate (kg/s)")
-    fb.add_option(name=f"flow_name", type="input", value=f"Flow {i+1}", label="Flow Name")
+
+    fb.add_option(name="flow_temp", type="input", value="80.0", label="Temperature (°C)")
+    fb.add_option(name="flow_rate", type="input", value="5.0", label="Flow Rate (kg/s)")
+    fb.add_option(name="flow_name", type="input", value=f"Flow {i+1}", label="Flow Name")
 
     def fb_func(self):
         self.set_interface("flow_out", {
