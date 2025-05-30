@@ -66,9 +66,7 @@ for j in range(num_outputs):
     tank_block.add_output(name=f"flow out {j}")
 
 # Tank compute function
-from barfi import Block
-import numpy as np
-from your_module import ThermalStorageTank  # Ensure correct import
+
 
 def create_tank_block(num_inputs, num_outputs):
     tank_block = Block(name="Tank")
