@@ -102,6 +102,7 @@ elif page == "Launch Simulation":
             return None
             
         hx_block = Block(name="Heat Exchanger")
+        
         hx_block.add_input(name="secondary_in")  # Secondary fluid input
         hx_block.add_output(name="hx_out")      # Connection to tank
         
@@ -132,10 +133,13 @@ elif page == "Launch Simulation":
     # --- Tank Block Generator ---
     def create_tank_block(num_inputs, num_outputs):
         tank_block = Block(name="Tank")
-
+        tank_block.add_option(name="tank_height_name", type="display", value="Tank Height (m)")
         tank_block.add_option("tank_height", type="input", value=str(config['tank_height']), label="Tank Height (m)")
+        tank_block.add_option(name="tank_diameter_name", type="display", value="Tank Diameter (m)")
         tank_block.add_option("tank_diameter", type="input", value=str(config['tank_diameter']), label="Tank Diameter (m)")
+        tank_block.add_option(name="num_nodes_name", type="display", value="Number of Nodes")
         tank_block.add_option("num_nodes", type="input", value=str(config['num_nodes']), label="Number of Nodes")
+        tank_block.add_option(name="initial_temp_name", type="display", value="Initial Temperature (°C)")
         tank_block.add_option("initial_temp", type="input", value="60.0", label="Initial Temperature (°C)")
 
         # Add regular flow inputs
@@ -151,8 +155,11 @@ elif page == "Launch Simulation":
         # Add outputs
         for j in range(num_outputs):
             tank_block.add_output(name=f"flow_out_{j}")
+            tank_block.add_option(name=f"output_height_{j}_name", type="display", value=f"Output {j+1} Height (m)")
             tank_block.add_option(f"output_height_{j}", type="input", value="", label=f"Output {j+1} Height (m)")
+            tank_block.add_option(name=f"output_flowrate_{j}_name", type="display", value=f"Output {j+1} Flowrate (kg/s)")
             tank_block.add_option(f"output_flowrate_{j}", type="input", value="", label=f"Output {j+1} Flowrate (kg/s)")
+            tank_block.add_option(name=f"output_name_{j}_name", type="display", value=f"Output {j+1} Name")
             tank_block.add_option(f"output_name_{j}", type="input", value=f"Outlet {j+1}", label=f"Output {j+1} Name")
 
         tank_block.add_output(name="tank_out")
