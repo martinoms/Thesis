@@ -321,14 +321,14 @@ elif page == "Launch Simulation":
                 st.info("No heat exchanger configured")
 
             # Temperature profile visualization
-            st.subheader("Temperature Profile")
-            fig, ax = plt.subplots(figsize=(10, 6))
-            ax.plot(results['node_temperatures'], 
-                   np.linspace(0, config['tank_height'], config['num_nodes']))
-            ax.set_xlabel("Temperature (°C)")
-            ax.set_ylabel("Height (m)")
-            ax.grid(True)
-            st.pyplot(fig)
+            #st.subheader("Temperature Profile")
+            #fig, ax = plt.subplots(figsize=(10, 6))
+            #ax.plot(results['node_temperatures'], 
+                   #np.linspace(0, config['tank_height'], config['num_nodes']))
+            #ax.set_xlabel("Temperature (°C)")
+            #ax.set_ylabel("Height (m)")
+            #ax.grid(True)
+            #st.pyplot(fig)
 
         results_block.add_compute(results_block_func)
         return results_block
