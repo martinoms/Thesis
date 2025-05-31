@@ -40,6 +40,10 @@ class TubeHeatExchanger:
     def calculate_heat_transfer(self, T_tank_node, m_dot_tank):
         """
         Calculate heat transfer for tube heat exchanger
+        Returns:
+            Q (float): Heat transfer rate [W]
+            T_out_secondary (float): Secondary outlet temperature [K]
+            effectiveness (float): Heat exchanger effectiveness [0-1]
         """
         p = self.params
         T_secondary_in = p['T_in_HE'] + 273.15  # Convert to K
@@ -76,7 +80,7 @@ class TubeHeatExchanger:
         # Secondary outlet temperature
         T_out_secondary = T_secondary_in - Q/C_secondary if C_secondary > 0 else T_secondary_in
         
-        return Q, T_out_secondary
+        return Q, T_out_secondary, effectiveness  # Now returns effectiveness
 
 class PlateHeatExchanger:
     def __init__(self, params, C_fl):
@@ -114,7 +118,11 @@ class PlateHeatExchanger:
         
     def calculate_heat_transfer(self, T_tank_node, m_dot_tank):
         """
-        Calculate heat transfer for plate heat exchanger
+        Calculate heat transfer for tube heat exchanger
+        Returns:
+            Q (float): Heat transfer rate [W]
+            T_out_secondary (float): Secondary outlet temperature [K]
+            effectiveness (float): Heat exchanger effectiveness [0-1]
         """
         p = self.params
         T_secondary_in = p['T_in_HE'] + 273.15  # Convert to K
@@ -135,13 +143,10 @@ class PlateHeatExchanger:
         if self.fixed_effectiveness is not None:
             effectiveness = self.fixed_effectiveness
         else:
-            if p.get('flow_arrangement', 'counterflow') == 'counterflow':
-                if C_r < 1e-6:  # One fluid has infinite capacity
-                    effectiveness = 1 - np.exp(-NTU)
-                else:
-                    effectiveness = (1 - np.exp(-NTU * (1 - C_r))) / (1 - C_r * np.exp(-NTU * (1 - C_r)))
-            else:  # Parallel flow
-                effectiveness = (1 - np.exp(-NTU * (1 + C_r))) / (1 + C_r)
+            if C_r < 1e-6:  # One fluid has infinite capacity
+                effectiveness = 1 - np.exp(-NTU)
+            else:
+                effectiveness = (1 - np.exp(-NTU * (1 - C_r))) / (1 - C_r * np.exp(-NTU * (1 - C_r)))
         
         # Heat transfer calculation
         if p['fluid'] == 'primary':
@@ -152,9 +157,9 @@ class PlateHeatExchanger:
         Q = effectiveness * Q_max
         
         # Secondary outlet temperature
-        T_out_secondary = T_secondary_in + Q / C_secondary if C_secondary > 0 else T_secondary_in
+        T_out_secondary = T_secondary_in - Q/C_secondary if C_secondary > 0 else T_secondary_in
         
-        return Q, T_out_secondary
+        return Q, T_out_secondary, effectiveness  # Now returns effectiveness
 class ThermalStorageTank:
     def __init__(self, num_nodes, params):
         """Initialize the thermal storage tank"""
@@ -168,7 +173,7 @@ class ThermalStorageTank:
                                    np.pi * (params['tank_diameter']/2)**2 * 
                                    self.tank_height / num_nodes)
         
-        # Door dit:
+        
         initial_T = params.get('T_initial', None)
         if initial_T is None:
             self.T = np.full(num_nodes, 20 + 273.15)  # Standaard uniforme temperatuur
@@ -266,10 +271,8 @@ class ThermalStorageTank:
         Returns:
             tuple: (secondary outlet temperature in °C, 
                     secondary mass flow rate in kg/s,
-                    heat transfer rate in W)
-                    
-        Raises:
-            IndexError: If hx_index is out of range
+                    heat transfer rate in W,
+                    effectiveness [0-1])
         """
         if hx_index >= len(self.heat_exchangers):
             raise IndexError(f"Heat exchanger index {hx_index} out of range (0-{len(self.heat_exchangers)-1})")
@@ -289,8 +292,8 @@ class ThermalStorageTank:
         flows = self.calculate_flows(node_flow, node_idx)
         m_dot_local = abs(flows['FL4'] - flows['FL6'])
         
-        # Calculate heat exchanger performance
-        Q, T_out_secondary = hx_info['hx'].calculate_heat_transfer(
+        # Calculate heat exchanger performance (now returns effectiveness)
+        Q, T_out_secondary, effectiveness = hx_info['hx'].calculate_heat_transfer(
             solution[time_idx, node_idx], 
             m_dot_local
         )
@@ -299,7 +302,8 @@ class ThermalStorageTank:
         return (
             T_out_secondary - 273.15,  # Convert K to °C
             hx_info['hx'].params['m_dot_secondary'],
-            Q
+            Q,
+            effectiveness  # Directly from calculate_heat_transfer
         )
     def calculate_flows(self, external_flow, current_node):
         """Calculate flow distribution for current node"""
@@ -402,7 +406,7 @@ class ThermalStorageTank:
             for hx in self.heat_exchangers:
                 if i == hx['node_idx']:
                     m_dot_local = abs(node_flows['FL4'] - node_flows['FL6'])
-                    Q_hx, _ = hx['hx'].calculate_heat_transfer(T[i], m_dot_local)
+                    Q_hx, _, _ = hx['hx'].calculate_heat_transfer(T[i], m_dot_local)
                     print("Q_hx:", Q_hx)
                     dTdt[i] -= Q_hx / (rho_fl_i * p['C_fl'] * self.node_volumes[i])
         
@@ -526,7 +530,7 @@ class ThermalStorageTank:
                     m_dot_local = abs(flows['FL4'] - flows['FL6'])
                     
                     # Get heat transfer and outlet temperature
-                    Q, T_out = hx['hx'].calculate_heat_transfer(solution[t_idx, node_idx], m_dot_local)
+                    Q, T_out, _ = hx['hx'].calculate_heat_transfer(solution[t_idx, node_idx], m_dot_local)
                     Q_hx.append(Q/1000)  # Convert to kW
                     T_out_secondary.append(T_out - 273.15)  # Convert to °C
                 
@@ -605,7 +609,7 @@ class ThermalStorageTank:
             
             flows = self.calculate_flows(node_flow, node_idx)
             m_dot_local = abs(flows['FL4'] - flows['FL6'])
-            Q_hx, T_out = hx['hx'].calculate_heat_transfer(solution[final_idx, node_idx], m_dot_local)
+            Q_hx, T_out, _ = hx['hx'].calculate_heat_transfer(solution[final_idx, node_idx], m_dot_local)
             
             ax2.axhline(y=height, color='green', linestyle=':', alpha=0.7, linewidth=2.5)
             ax2.text(x_min + (x_max-x_min)/2, height, 
@@ -746,9 +750,9 @@ if __name__ == "__main__":
     'num_plates': 30,  # Number of plates
     'plate_width': 0.5,  # Width of each plate [m]
     'plate_height': 1.0,  # Height of each plate [m]
-    'U': 2500,        # Overall heat transfer coefficient [W/m²K]
+    'U': 850,        # Overall heat transfer coefficient [W/m²K]
     'fluid': 'secondary',  # 'primary' or 'secondary'
-    'm_dot_secondary': 10.0,  # Secondary fluid flow rate [kg/s]
+    'm_dot_secondary': 2.5,  # Secondary fluid flow rate [kg/s]
     'Cp_secondary': 4186,    # Secondary fluid heat capacity [J/kgK] (e.g., glycol mix)
     'T_in_HE': 60.0,         # Secondary fluid inlet temperature [°C]
     'flow_arrangement': 'counterflow',  # 'counterflow' or 'parallel'
@@ -764,7 +768,7 @@ if __name__ == "__main__":
         'tank_height': H,
         'tank_diameter': 2.0,
         'C_fl': 4186,
-        'k_fl': 0.0,
+        'k_fl': 0.6,
         'delta_k_eff': 0.0,
         'UA_i': 0.0,
         'UA_gfl': 0.0,
@@ -772,7 +776,7 @@ if __name__ == "__main__":
         'T_env': 20 + 273.15,
         'T_gfl': 15 + 273.15,
         'T_initial': initial_T,  
-        'heat_exchangers': [
+        'heat_exchangers': [plate_hx_params
             
             ]
         }
@@ -802,7 +806,6 @@ if __name__ == "__main__":
     # Get at specific time index
     temp, flow = tank.get_outlet_conditions(solution, flow_specs, "Mixed Outlet", time_idx=50)
     print(f"At time index 50 - Temperature: {temp:.2f}°C, Flow rate: {flow:.2f} kg/s")
-    
-    # Get conditions at a specific time index
-    T_out, m_dot, Q = tank.get_heat_exchanger_conditions(solution, flow_specs, hx_index=0, time_idx=50)
-    print(f"At time index 50 - Outlet Temp: {T_out:.2f}°C, Flow: {m_dot:.2f} kg/s, Heat Transfer: {Q/1000:.2f} kW")
+
+    T_out, m_dot, Q, effectiveness = tank.get_heat_exchanger_conditions(solution, flow_specs, hx_index=0, time_idx=50)
+    print(f"Outlet Temp: {T_out:.2f}°C, Flow: {m_dot:.2f} kg/s, Heat Transfer: {Q/1000:.2f} kW, Effectiveness: {effectiveness*100:.2f}%")
