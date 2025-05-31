@@ -314,9 +314,7 @@ elif page == "Launch Simulation":
                         if 0<hx['efficiency']<1:
                             st.progress(min(1.0, hx['efficiency']), 
                                 f"Efficiency: {abs(hx['efficiency'])*100:.1f}%")
-                        else:
-                            st.progress(min(1.0, hx['efficiency']), 
-                                f"Efficiency: {0*100:.1f}%")
+                        
                         
                             
             else:
