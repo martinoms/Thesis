@@ -18,7 +18,7 @@ if page == "Configure Tank":
     st.sidebar.header("Tank Configuration")
     tank_height = st.sidebar.number_input("Tank Height (m)", value=4.0)
     tank_diameter = st.sidebar.number_input("Tank Diameter (m)", value=2.0)
-    num_nodes = st.sidebar.number_input("Number of Nodes", min_value=5, max_value=100, value=20)
+    num_nodes = st.sidebar.number_input("Number of Nodes", min_value=5, max_value=100, value=50)
     num_inputs = st.sidebar.number_input("Number of Flow Inputs", min_value=1, max_value=5, value=2)
     num_outputs = st.sidebar.number_input("Number of Flow Outputs", min_value=1, max_value=5, value=2)
     
@@ -138,7 +138,7 @@ elif page == "Launch Simulation":
         # Add regular flow inputs
         for i in range(num_inputs):
             tank_block.add_input(name=f"flow_in_{i}")
-            tank_block.add_option(f"input_height_{i}", type="input", value=str((i + 1) * 1.0), label=f"Input {i+1} Height (m)")
+            tank_block.add_option(f"input_height_{i}", type="input", value="", label=f"Input {i+1} Height (m)")
 
         # Add dedicated heat exchanger input if configured
         if config['hx_config']:
@@ -148,8 +148,8 @@ elif page == "Launch Simulation":
         # Add outputs
         for j in range(num_outputs):
             tank_block.add_output(name=f"flow_out_{j}")
-            tank_block.add_option(f"output_height_{j}", type="input", value=str((j + 1) * 1.0), label=f"Output {j+1} Height (m)")
-            tank_block.add_option(f"output_flowrate_{j}", type="input", value="5.0", label=f"Output {j+1} Flowrate (kg/s)")
+            tank_block.add_option(f"output_height_{j}", type="input", value="", label=f"Output {j+1} Height (m)")
+            tank_block.add_option(f"output_flowrate_{j}", type="input", value="", label=f"Output {j+1} Flowrate (kg/s)")
             tank_block.add_option(f"output_name_{j}", type="input", value=f"Outlet {j+1}", label=f"Output {j+1} Name")
 
         tank_block.add_output(name="tank_out")
