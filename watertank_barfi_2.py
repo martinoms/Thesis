@@ -254,7 +254,7 @@ elif page == "Launch Simulation":
             # Prepare heat exchanger results
             hx_results = []
             for idx, hx in enumerate(heat_exchangers):
-                T_out, m_dot, Q, e = tank.get_heat_exchanger_conditions(
+                T_out, m_dot, Q, ef = tank.get_heat_exchanger_conditions(
                     solution, {'inlets': inlets, 'outlets': outlets}, 
                     hx_index=idx
                 )
@@ -266,7 +266,7 @@ elif page == "Launch Simulation":
                     'T_out_HE': T_out,
                     'heat_transfer': Q,
                     'power_kW': Q / 1000,
-                    'effectiveness': e
+                    'effectiveness': ef
                 })
 
             self.set_interface("tank_out", {
