@@ -151,6 +151,7 @@ elif page == "Launch Simulation":
         # Add dedicated heat exchanger input if configured
         if config['hx_config']:
             tank_block.add_input(name="hx_in")
+            tank_block.add_option(name=f"hx_height_name", type="display", value=f"HX Height (m)")
             tank_block.add_option("hx_height", type="input", value=str(config['hx_config']['height']), label="HX Height (m)")
 
         # Add outputs
