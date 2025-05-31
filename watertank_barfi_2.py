@@ -37,6 +37,7 @@ if page == "Configure Tank":
             'T_in_HE': st.sidebar.number_input("Secondary Inlet Temp (°C)", value=60.0),
             'U_value': st.sidebar.number_input("U Value (W/m²K)", value=850.0),
             'fluid': 'secondary'
+            'Cp_secondary': st.sidebar.number_input("Cp secondary (W/kgK)", value=4186)
         }
         
         if hx_type == "Tube":
