@@ -35,7 +35,7 @@ if page == "Configure Tank":
                                              max_value=float(tank_height), value=2.0),
             'm_dot_secondary': st.sidebar.number_input("Secondary Flow Rate (kg/s)", value=2.5),
             'T_in_HE': st.sidebar.number_input("Secondary Inlet Temp (°C)", value=60.0),
-            'U_value': st.sidebar.number_input("U Value (W/m²K)", value=850.0),
+            'U': st.sidebar.number_input("U Value (W/m²K)", value=850.0),
             'Cp_secondary': st.sidebar.number_input("Cp secondary (W/kgK)", value=4186),
             'fluid': 'secondary'
             
