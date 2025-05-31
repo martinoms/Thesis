@@ -145,6 +145,7 @@ elif page == "Launch Simulation":
         # Add regular flow inputs
         for i in range(num_inputs):
             tank_block.add_input(name=f"flow_in_{i}")
+            tank_block.add_option(name=f"input_height_{i}_name", type="display", value=f"Input {i+1} Height (m)")
             tank_block.add_option(f"input_height_{i}", type="input", value="", label=f"Input {i+1} Height (m)")
 
         # Add dedicated heat exchanger input if configured
