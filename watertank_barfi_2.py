@@ -254,7 +254,7 @@ elif page == "Launch Simulation":
             # Prepare heat exchanger results
             hx_results = []
             for idx, hx in enumerate(heat_exchangers):
-                T_out, m_dot, Q = tank.get_heat_exchanger_conditions(
+                T_out, m_dot, Q, e = tank.get_heat_exchanger_conditions(
                     solution, {'inlets': inlets, 'outlets': outlets}, 
                     hx_index=idx
                 )
@@ -266,8 +266,7 @@ elif page == "Launch Simulation":
                     'T_out_HE': T_out,
                     'heat_transfer': Q,
                     'power_kW': Q / 1000,
-                    'efficiency': (hx['hx'].params['T_in_HE'] - T_out) / 
-                                 (hx['hx'].params['T_in_HE'] - solution[-1, hx['node_idx']] + 273.15)
+                    'effectiveness': e
                 })
 
             self.set_interface("tank_out", {
@@ -311,9 +310,9 @@ elif page == "Launch Simulation":
                         cols[1].metric("Outlet Temp", f"{hx['T_out_HE']:.1f} °C")
                         cols[0].metric("Flow Rate", f"{hx['m_dot_secondary']:.2f} kg/s")
                         cols[1].metric("Power", f"{hx['power_kW']:.2f} kW")
-                        if 0<hx['efficiency']<1:
-                            st.progress(min(1.0, hx['efficiency']), 
-                                f"Efficiency: {abs(hx['efficiency'])*100:.1f}%")
+                        if 0<hx['effectiveness']<1:
+                            st.progress(min(1.0, hx['effectiveness']), 
+                                f"effectiveness: {abs(hx['effectiveness'])*100:.1f}%")
                         
                         
                             
