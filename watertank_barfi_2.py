@@ -79,11 +79,11 @@ elif page == "Launch Simulation":
     def create_flow_block(i):
         fb = Block(name=f"Flow Input {i+1}")
         fb.add_output(name="flow_out")
-        result_block.add_option(name="display-option", type="display", value="Temperature (°C)")
+        fb.add_option(name="display-option", type="display", value="Temperature (°C)")
         fb.add_option("flow_temp", type="input", value="80.0", label="Temperature (°C)")
-        result_block.add_option(name="display-option", type="display", value="Flow Rate (kg/s)")
+        fb.add_option(name="display-option", type="display", value="Flow Rate (kg/s)")
         fb.add_option("flow_rate", type="input", value="5.0", label="Flow Rate (kg/s)")
-        result_block.add_option(name="display-option", type="display", value="Flow Name")
+        fb.add_option(name="display-option", type="display", value="Flow Name")
         fb.add_option("flow_name", type="input", value=f"Flow {i+1}", label="Flow Name")
 
         def fb_func(self):
