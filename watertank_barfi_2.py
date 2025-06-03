@@ -370,5 +370,5 @@ elif page == "Launch Simulation":
             if not results_node.get_interface("results_in") and tank_output:
                 results_node.set_interface("results_in", tank_output)
 
-        #except Exception as e:
-            #st.error(f"⚠️ Error during result processing: {e}")
+        except Exception as e:
+            st.error(f"⚠️ Error during result processing: {e}")
