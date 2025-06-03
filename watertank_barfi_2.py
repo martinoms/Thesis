@@ -305,7 +305,7 @@ elif page == "Launch Simulation":
             cols = st.columns(3)
             cols[0].metric("Height", f"{results['tank_params']['tank_height']} m")
             cols[1].metric("Diameter", f"{results['tank_params']['tank_diameter']} m")
-            cols[2].metric("Nodes", results['tank_params'].get('num_nodes', 'N/A'))
+            cols[2].metric("Nodes", float(self.get_option("num_nodes")))
             
             st.subheader("Tank Outlet Conditions")
             for outlet in results.get('outlets', []):
