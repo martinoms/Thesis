@@ -64,10 +64,13 @@ class TubeHeatExchanger:
         if self.fixed_effectiveness is not None:
             effectiveness = self.fixed_effectiveness
         else:
-            if C_r < 1e-6:  # One fluid has infinite capacity
-                effectiveness = 1 - np.exp(-NTU)
-            else:
-                effectiveness = (1 - np.exp(-NTU * (1 - C_r))) / (1 - C_r * np.exp(-NTU * (1 - C_r)))
+            if p.get('flow_arrangement', 'counterflow') == 'counterflow':
+                if C_r < 1e-6:  # One fluid has infinite capacity
+                    effectiveness = 1 - np.exp(-NTU)
+                else:
+                    effectiveness = (1 - np.exp(-NTU * (1 - C_r))) / (1 - C_r * np.exp(-NTU * (1 - C_r)))
+            else:  # Parallel flow
+                effectiveness = (1 - np.exp(-NTU * (1 + C_r))) / (1 + C_r)
         
         # Heat transfer calculation
         if p['fluid'] == 'primary':
@@ -143,10 +146,13 @@ class PlateHeatExchanger:
         if self.fixed_effectiveness is not None:
             effectiveness = self.fixed_effectiveness
         else:
-            if C_r < 1e-6:  # One fluid has infinite capacity
-                effectiveness = 1 - np.exp(-NTU)
-            else:
-                effectiveness = (1 - np.exp(-NTU * (1 - C_r))) / (1 - C_r * np.exp(-NTU * (1 - C_r)))
+            if p.get('flow_arrangement', 'counterflow') == 'counterflow':
+                if C_r < 1e-6:  # One fluid has infinite capacity
+                    effectiveness = 1 - np.exp(-NTU)
+                else:
+                    effectiveness = (1 - np.exp(-NTU * (1 - C_r))) / (1 - C_r * np.exp(-NTU * (1 - C_r)))
+            else:  # Parallel flow
+                effectiveness = (1 - np.exp(-NTU * (1 + C_r))) / (1 + C_r)
         
         # Heat transfer calculation
         if p['fluid'] == 'primary':
@@ -157,8 +163,8 @@ class PlateHeatExchanger:
         Q = effectiveness * Q_max
         
         # Secondary outlet temperature
-        T_out_secondary = T_secondary_in - Q/C_secondary if C_secondary > 0 else T_secondary_in
-        
+        T_out_secondary = T_secondary_in + Q/C_secondary if C_secondary > 0 else T_secondary_in
+        print("T_out_secondary:", T_out_secondary-273.15)
         return Q, T_out_secondary, effectiveness  # Now returns effectiveness
 class ThermalStorageTank:
     def __init__(self, num_nodes, params):
@@ -747,23 +753,36 @@ if __name__ == "__main__":
     plate_hx_params = {
     'type': 'plate',  # Specify this is a plate heat exchanger
     'height': 1.0,   # Installation height in the tank [m]
-    'num_plates': 30,  # Number of plates
-    'plate_width': 0.5,  # Width of each plate [m]
-    'plate_height': 1.0,  # Height of each plate [m]
-    'U': 850,        # Overall heat transfer coefficient [W/m²K]
+    'area': 2.5,
+    # 'num_plates': 30,  # Number of plates
+    # 'plate_width': 1.0,  # Width of each plate [m]
+    # 'plate_height': 1.0,  # Height of each plate [m]
+    'U': 3000,        # Overall heat transfer coefficient [W/m²K]
     'fluid': 'secondary',  # 'primary' or 'secondary'
-    'm_dot_secondary': 2.5,  # Secondary fluid flow rate [kg/s]
+    'm_dot_secondary': 10.0,  # Secondary fluid flow rate [kg/s]
     'Cp_secondary': 4186,    # Secondary fluid heat capacity [J/kgK] (e.g., glycol mix)
-    'T_in_HE': 60.0,         # Secondary fluid inlet temperature [°C]
+    'T_in_HE': 90.0,         # Secondary fluid inlet temperature [°C]
     'flow_arrangement': 'counterflow',  # 'counterflow' or 'parallel'
     # Optional parameters:
     'effectiveness': None,   # If specified, fixes effectiveness
     'name': "Secondary Plate HX"  # Optional identifier
-}     
+}  
+     
+    plate_2 = {
+            'type': 'plate',
+            'height': 1.0,
+            'area': 2.5,
+            'U': 3000,
+            'fluid': 'secondary',
+            'm_dot_secondary': 10,
+            'Cp_secondary': 4186,
+            'T_in_HE': 90,
+            'flow_arrangement': 'counterflow'
+        }
     # Creëer een gestratificeerde initiële temperatuurverdeling
     node_heights = np.linspace(2.0, 0, num_nodes)  # Tankhoogte van 2m
     initial_T = np.where(node_heights > 1.0, 90, 70)  # 80°C boven 1m, 20°C eronder
-    initial_T = 92
+    initial_T = 20
     params = {
         'tank_height': H,
         'tank_diameter': 2.0,
@@ -776,7 +795,7 @@ if __name__ == "__main__":
         'T_env': 20 + 273.15,
         'T_gfl': 15 + 273.15,
         'T_initial': initial_T,  
-        'heat_exchangers': [plate_hx_params
+        'heat_exchangers': [plate_2
             
             ]
         }
@@ -786,16 +805,16 @@ if __name__ == "__main__":
     
     flow_specs = {
         'inlets': [
-            (H, 5.0, 80.0, "Hot Inlet"),
-            (0.0, 5.0, 40.0, "Cold Inlet")
+            (H, 4.0, 90.0, "Hot Inlet"),
+            (0.0, 4.0, 30.0, "Cold Inlet")
         ],
         'outlets': [
-            (3.0, 8.0, "Mixed Outlet"),
-            (1.0, 2.0, "Mixed Outlet" )
+            (H, 6.0, "Mixed Outlet"),
+            (0.0, 2.0, "Mixed Outlet" )
         ]
     }
     
-    t_span = np.linspace(0, 3*3600, 100)
+    t_span = np.linspace(0, 10*3600, 100)
     solution = tank.solve(t_span, flow_specs)
     tank.visualize_results(solution, t_span, flow_specs) 
 
