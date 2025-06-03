@@ -56,7 +56,7 @@ class TubeHeatExchanger:
         C_min = min(C_tank, C_secondary)
         C_max = max(C_tank, C_secondary)
         C_r = C_min / C_max if C_max > 0 else 0
-        
+        print("C_r:", C_r)
         # Calculate NTU
         NTU = (p['U'] * self.A) / C_min if C_min > 0 else 0
         
@@ -118,7 +118,7 @@ class PlateHeatExchanger:
             self.area = params['area']
             
         self.fixed_effectiveness = params.get('effectiveness', None)
-        
+        print("Area:", self.area)
     def calculate_heat_transfer(self, T_tank_node, m_dot_tank):
         """
         Calculate heat transfer for tube heat exchanger
@@ -138,7 +138,8 @@ class PlateHeatExchanger:
         C_min = min(C_tank, C_secondary)
         C_max = max(C_tank, C_secondary)
         C_r = C_min / C_max if C_max > 0 else 0
-        
+        print("C_r:", C_r)
+        print("Area:", self.area)
         # Calculate NTU
         NTU = (p['U'] * self.area) / C_min if C_min > 0 else 0
         
@@ -153,7 +154,7 @@ class PlateHeatExchanger:
                     effectiveness = (1 - np.exp(-NTU * (1 - C_r))) / (1 - C_r * np.exp(-NTU * (1 - C_r)))
             else:  # Parallel flow
                 effectiveness = (1 - np.exp(-NTU * (1 + C_r))) / (1 + C_r)
-        
+        print("effectiveness:", effectiveness)
         # Heat transfer calculation
         if p['fluid'] == 'primary':
             Q_max = C_min * (T_secondary_in - T_tank_node)
@@ -752,12 +753,12 @@ if __name__ == "__main__":
 }
     plate_hx_params = {
     'type': 'plate',  # Specify this is a plate heat exchanger
-    'height': 1.0,   # Installation height in the tank [m]
-    'area': 2.5,
-    # 'num_plates': 30,  # Number of plates
-    # 'plate_width': 1.0,  # Width of each plate [m]
-    # 'plate_height': 1.0,  # Height of each plate [m]
-    'U': 3000,        # Overall heat transfer coefficient [W/m²K]
+    'height': 2.0,   # Installation height in the tank [m]
+    #'area': 2.5,
+    'num_plates': 30,  # Number of plates
+    'plate_width': 1.0,  # Width of each plate [m]
+    'plate_height': 1.0,  # Height of each plate [m]
+    'U': 2500,        # Overall heat transfer coefficient [W/m²K]
     'fluid': 'secondary',  # 'primary' or 'secondary'
     'm_dot_secondary': 10.0,  # Secondary fluid flow rate [kg/s]
     'Cp_secondary': 4186,    # Secondary fluid heat capacity [J/kgK] (e.g., glycol mix)
@@ -795,7 +796,7 @@ if __name__ == "__main__":
         'T_env': 20 + 273.15,
         'T_gfl': 15 + 273.15,
         'T_initial': initial_T,  
-        'heat_exchangers': [plate_2
+        'heat_exchangers': [plate_hx_params
             
             ]
         }
@@ -805,12 +806,12 @@ if __name__ == "__main__":
     
     flow_specs = {
         'inlets': [
-            (H, 4.0, 90.0, "Hot Inlet"),
-            (0.0, 4.0, 30.0, "Cold Inlet")
+            (H, 5.0, 90.0, "Hot Inlet"),
+            (0.0, 5.0, 30.0, "Cold Inlet")
         ],
         'outlets': [
             (H, 6.0, "Mixed Outlet"),
-            (0.0, 2.0, "Mixed Outlet" )
+            (0.0, 4.0, "Mixed Outlet" )
         ]
     }
     
