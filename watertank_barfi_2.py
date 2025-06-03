@@ -372,3 +372,4 @@ elif page == "Launch Simulation":
 
         except Exception as e:
             #st.error(f"⚠️ Error during result processing: {e}")
+            pass
