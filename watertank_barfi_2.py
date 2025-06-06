@@ -322,8 +322,8 @@ elif page == "Launch Simulation":
                         cols[1].metric("Outlet Temp", f"{hx['T_out_HE']:.1f} °C")
                         cols[0].metric("Flow Rate", f"{hx['m_dot_secondary']:.2f} kg/s")
                         cols[1].metric("Power", f"{hx['power_kW']:.2f} kW")
-                        if 0<hx['effectiveness']<1:
-                            st.progress(min(1.0, hx['effectiveness']), 
+                        #if 0<hx['effectiveness']<1:
+                        st.progress(min(1.0, hx['effectiveness']), 
                                 f"effectiveness: {abs(hx['effectiveness'])*100:.1f}%")
                         
                         
